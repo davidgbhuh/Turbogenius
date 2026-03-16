@@ -150,6 +150,12 @@ with tab2:
 
 with tab3:
     st.subheader("AI 주식 분석 리포트")
+
+    # 종목이 바뀌면 이전 리포트 초기화
+    if st.session_state.get("report_ticker") != selected_ticker:
+        st.session_state["ai_report"] = ""
+        st.session_state["report_ticker"] = selected_ticker
+
     if not api_key:
         st.info("사이드바에 Anthropic API Key를 입력하면 AI 분석 리포트를 생성할 수 있습니다.")
     else:
@@ -158,9 +164,13 @@ with tab3:
                 try:
                     info = get_company_info(selected_ticker, market)
                     report = generate_report(info, summary, period_label, api_key)
-                    st.markdown(report)
+                    st.session_state["ai_report"] = report
                 except Exception as e:
+                    st.session_state["ai_report"] = ""
                     st.error(f"리포트 생성 중 오류가 발생했습니다: {e}")
+
+        if st.session_state.get("ai_report"):
+            st.markdown(st.session_state["ai_report"])
 
 with tab4:
     with st.spinner("기업 정보 로딩 중..."):
