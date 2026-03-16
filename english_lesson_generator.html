@@ -167,6 +167,10 @@
     .video-title { font-size: .88rem; font-weight: 600; line-height: 1.4; color: var(--text); }
     .video-meta  { font-size: .76rem; color: var(--text-muted); margin-top: 6px; }
     .video-badge { display: inline-block; background: var(--primary); color: white; font-size: .7rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; margin-top: 6px; }
+    .video-stats { display: flex; gap: 10px; margin-top: 6px; font-size: .75rem; color: var(--text-muted); flex-wrap: wrap; }
+    .video-stats span { display: flex; align-items: center; gap: 3px; }
+    .view-count-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+    .view-count-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-light)); border-radius: 2px; transition: width .6s ease; }
 
     /* ─── Step indicators ────────────────────────────────────── */
     .steps { display: flex; align-items: center; gap: 0; margin-bottom: 28px; }
@@ -527,6 +531,15 @@
           </select>
         </div>
         <div class="form-group">
+          <label>기간 필터</label>
+          <select id="periodFilter">
+            <option value="6m">최근 6개월</option>
+            <option value="1y" selected>최근 1년</option>
+            <option value="2y">최근 2년</option>
+            <option value="all">전체 (기간 제한 없음)</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label>수업 날짜</label>
           <input type="date" id="lessonDate" />
         </div>
@@ -677,6 +690,7 @@ async function searchVideos() {
   const topic  = $('topicInput').value.trim();
   const level  = $('levelSelect').value;
   const type   = $('contentType').value;
+  const period = $('periodFilter').value;
 
   if (!ytKey)  return alert('YouTube API Key를 입력해주세요.');
   if (!topic)  return alert('수업 주제를 입력해주세요.');
@@ -686,6 +700,16 @@ async function searchVideos() {
   let query = `${topic} ${levelMap[level]}`;
   if (type === 'podcast') query += ' podcast';
 
+  // publishedAfter date
+  let publishedAfter = '';
+  if (period !== 'all') {
+    const d = new Date();
+    if (period === '6m') d.setMonth(d.getMonth() - 6);
+    if (period === '1y') d.setFullYear(d.getFullYear() - 1);
+    if (period === '2y') d.setFullYear(d.getFullYear() - 2);
+    publishedAfter = d.toISOString();
+  }
+
   setStep(2);
   showLoading('searchLoading', 'searchProgress', 'searchFill');
   $('videoSection').style.display = 'none';
@@ -693,19 +717,45 @@ async function searchVideos() {
   videoDataMap = {};
 
   try {
-    // Fetch 3 videos from YouTube Data API v3
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoCategoryId=27&videoCaption=closedCaption&maxResults=6&relevanceLanguage=en&hl=en&key=${ytKey}`;
-    const res  = await fetch(url);
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err?.error?.message || `HTTP ${res.status}`);
+    // 1) Search API — order=viewCount + publishedAfter, fetch 9 candidates
+    let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoCaption=closedCaption&order=viewCount&maxResults=9&relevanceLanguage=en&hl=en&key=${ytKey}`;
+    if (publishedAfter) searchUrl += `&publishedAfter=${encodeURIComponent(publishedAfter)}`;
+
+    const searchRes = await fetch(searchUrl);
+    if (!searchRes.ok) {
+      const err = await searchRes.json();
+      throw new Error(err?.error?.message || `HTTP ${searchRes.status}`);
     }
-    const data = await res.json();
-    const items = (data.items || []).slice(0, 3);
+    const searchData = await searchRes.json();
+    const candidates = searchData.items || [];
 
-    if (items.length === 0) throw new Error('검색 결과가 없습니다. 다른 주제를 시도해보세요.');
+    if (candidates.length === 0) throw new Error('검색 결과가 없습니다. 기간을 넓히거나 다른 주제를 입력해보세요.');
 
-    renderVideos(items);
+    // 2) videos.list — get statistics + contentDetails for all candidates
+    const ids = candidates.map(i => i.id.videoId).join(',');
+    const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=${ids}&key=${ytKey}`;
+    const statsRes  = await fetch(statsUrl);
+    const statsData = await statsRes.json();
+
+    // Build stats map: videoId → { viewCount, likeCount, duration }
+    const statsMap = {};
+    (statsData.items || []).forEach(v => {
+      statsMap[v.id] = {
+        viewCount: parseInt(v.statistics?.viewCount || 0, 10),
+        likeCount: parseInt(v.statistics?.likeCount || 0, 10),
+        duration:  parseDuration(v.contentDetails?.duration || ''),
+      };
+    });
+
+    // 3) Sort candidates by viewCount descending, pick top 3
+    const sorted = candidates
+      .filter(i => statsMap[i.id.videoId])
+      .sort((a, b) => (statsMap[b.id.videoId]?.viewCount || 0) - (statsMap[a.id.videoId]?.viewCount || 0))
+      .slice(0, 3);
+
+    if (sorted.length === 0) throw new Error('유효한 검색 결과가 없습니다. 다른 주제를 시도해보세요.');
+
+    renderVideos(sorted, statsMap);
     hideLoading('searchLoading', 'searchProgress', 'searchFill');
     $('videoSection').style.display = 'block';
 
@@ -716,9 +766,28 @@ async function searchVideos() {
   }
 }
 
-function renderVideos(items) {
+/* ── ISO 8601 duration → "mm:ss" / "hh:mm:ss" ──────────────────── */
+function parseDuration(iso) {
+  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!m) return '';
+  const h = parseInt(m[1] || 0), min = parseInt(m[2] || 0), s = parseInt(m[3] || 0);
+  if (h > 0) return `${h}:${String(min).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  return `${min}:${String(s).padStart(2,'0')}`;
+}
+
+/* ── Format view count → "1.2M", "340K" ────────────────────────── */
+function fmtViews(n) {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+  if (n >= 1_000)     return Math.round(n / 1_000) + 'K';
+  return String(n);
+}
+
+function renderVideos(items, statsMap) {
   const grid = $('videosGrid');
   grid.innerHTML = '';
+
+  // Max view count for relative bar
+  const maxViews = Math.max(...items.map(i => statsMap[i.id.videoId]?.viewCount || 0), 1);
 
   items.forEach((item, idx) => {
     const vid   = item.id.videoId;
@@ -728,18 +797,30 @@ function renderVideos(items) {
     const chan   = snip.channelTitle;
     const desc   = snip.description;
     const date   = snip.publishedAt?.substring(0,10) || '';
+    const stats  = statsMap[vid] || {};
+    const views  = stats.viewCount || 0;
+    const dur    = stats.duration  || '';
+    const pct    = Math.round((views / maxViews) * 100);
 
-    videoDataMap[vid] = { title, channel: chan, thumb, url: `https://www.youtube.com/watch?v=${vid}`, description: desc, publishedAt: date };
+    videoDataMap[vid] = { title, channel: chan, thumb, url: `https://www.youtube.com/watch?v=${vid}`, description: desc, publishedAt: date, viewCount: views };
 
     const card = document.createElement('div');
     card.className = 'video-card';
     card.dataset.vid = vid;
     card.innerHTML = `
-      <img class="video-thumb" src="${thumb}" alt="${escHtml(title)}" loading="lazy" />
+      <div style="position:relative;">
+        <img class="video-thumb" src="${thumb}" alt="${escHtml(title)}" loading="lazy" />
+        ${dur ? `<span style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.75);color:#fff;font-size:.72rem;font-weight:600;padding:2px 6px;border-radius:4px;">${dur}</span>` : ''}
+      </div>
       <div class="video-info">
         <div class="video-title">${escHtml(title)}</div>
         <div class="video-meta">📺 ${escHtml(chan)} &nbsp;·&nbsp; ${date}</div>
-        <div class="video-badge">영상 ${idx+1}</div>
+        <div class="video-stats">
+          <span>👁️ ${fmtViews(views)} views</span>
+          ${stats.likeCount ? `<span>👍 ${fmtViews(stats.likeCount)}</span>` : ''}
+        </div>
+        <div class="view-count-bar"><div class="view-count-fill" style="width:${pct}%"></div></div>
+        <div style="margin-top:8px;"><span class="video-badge">🏆 인기순 ${idx+1}위</span></div>
       </div>`;
     card.addEventListener('click', () => toggleVideo(vid, card));
     grid.appendChild(card);
