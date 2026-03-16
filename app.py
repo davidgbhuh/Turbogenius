@@ -6,6 +6,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def get_api_key_from_env() -> str:
+    """Streamlit Cloud secrets 또는 .env 파일에서 API 키를 가져옵니다."""
+    # Streamlit Cloud secrets 우선
+    try:
+        return st.secrets["ANTHROPIC_API_KEY"]
+    except Exception:
+        pass
+    # 로컬 .env 파일 또는 환경변수
+    return os.getenv("ANTHROPIC_API_KEY", "")
+
 from config import MARKETS, PERIODS
 from data.stock_list import get_stock_list, search_stocks
 from modules.data_fetcher import fetch_ohlcv, get_company_info
@@ -82,12 +92,13 @@ with st.sidebar:
 
     st.divider()
 
-    # API key
+    # API key (Streamlit Cloud secrets 또는 직접 입력)
+    env_key = get_api_key_from_env()
     api_key = st.text_input(
         "Anthropic API Key",
         type="password",
-        value=os.getenv("ANTHROPIC_API_KEY", ""),
-        help="AI 분석 리포트 생성에 필요합니다.",
+        value=env_key,
+        help="AI 분석 리포트 생성에 필요합니다. Streamlit Cloud 배포 시 Secrets에 설정하면 자동 입력됩니다.",
     )
 
 # ─── Main area ───────────────────────────────────────────────────────────────
