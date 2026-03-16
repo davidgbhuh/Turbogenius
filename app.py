@@ -54,12 +54,28 @@ with st.sidebar:
 
     if filtered.empty:
         st.warning("검색 결과가 없습니다.")
-        st.stop()
+        st.info("아래에서 종목 코드를 직접 입력하세요.")
 
-    options = [f"{row['ticker']} | {row['name']}" for _, row in filtered.iterrows()]
-    selected = st.selectbox("종목 선택", options)
-    selected_ticker = selected.split(" | ")[0]
-    selected_name = selected.split(" | ")[1]
+    # 직접 코드 입력 (검색 결과 없을 때 또는 코드를 직접 아는 경우)
+    direct_code = st.text_input(
+        "종목 코드 직접 입력",
+        placeholder="예: 005930",
+        help="6자리 종목 코드를 직접 입력하면 바로 조회할 수 있습니다."
+    )
+
+    if direct_code.strip():
+        # 직접 입력 우선 사용
+        selected_ticker = direct_code.strip().zfill(6)
+        # 이름 조회 (목록에 있으면 표시, 없으면 코드 그대로)
+        match = stock_df[stock_df["ticker"] == selected_ticker]
+        selected_name = match.iloc[0]["name"] if not match.empty else selected_ticker
+    elif not filtered.empty:
+        options = [f"{row['ticker']} | {row['name']}" for _, row in filtered.iterrows()]
+        selected = st.selectbox("종목 선택", options)
+        selected_ticker = selected.split(" | ")[0]
+        selected_name = selected.split(" | ")[1]
+    else:
+        st.stop()
 
     # Period
     period_label = st.selectbox("조회 기간", list(PERIODS.keys()), index=3)
