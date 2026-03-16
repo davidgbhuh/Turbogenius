@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>English Lesson Generator · for Teachers</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Variables ─────────────────────────────────────────── */
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #818cf8;
+      --primary-dark: #3730a3;
+      --accent: #f59e0b;
+      --success: #10b981;
+      --danger: #ef4444;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 8px 24px rgba(0,0,0,.05);
+    }
+
+    /* ─── Reset / Base ───────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ─── Layout ─────────────────────────────────────────────── */
+    .app-header {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 60%, var(--primary-light) 100%);
+      color: white;
+      padding: 28px 40px 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    .app-header::after {
+      content: '📚';
+      position: absolute;
+      right: 60px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 80px;
+      opacity: .15;
+    }
+    .app-header h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: -.5px; }
+    .app-header p  { font-size: .95rem; opacity: .85; margin-top: 4px; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+
+    /* ─── Card ───────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title span { font-size: 1.1em; }
+
+    /* ─── Form controls ──────────────────────────────────────── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    label { font-size: .82rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+    input, select, textarea {
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: .95rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      width: 100%;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+    }
+    input[type="password"] { letter-spacing: .1em; }
+    textarea { resize: vertical; min-height: 90px; }
+
+    .hint { font-size: .78rem; color: var(--text-muted); margin-top: 3px; }
+
+    /* ─── Buttons ─────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 22px;
+      border-radius: 8px;
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all .18s;
+      text-decoration: none;
+    }
+    .btn-primary   { background: var(--primary); color: white; }
+    .btn-primary:hover   { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79,70,229,.3); }
+    .btn-success   { background: var(--success); color: white; }
+    .btn-success:hover   { background: #059669; transform: translateY(-1px); }
+    .btn-accent    { background: var(--accent); color: white; }
+    .btn-accent:hover    { background: #d97706; transform: translateY(-1px); }
+    .btn-outline   { background: transparent; color: var(--primary); border: 2px solid var(--primary); }
+    .btn-outline:hover   { background: var(--primary); color: white; }
+    .btn-sm  { padding: 7px 14px; font-size: .82rem; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; }
+
+    .btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+
+    /* ─── Loading ─────────────────────────────────────────────── */
+    .loading {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      color: var(--primary);
+      font-size: .9rem;
+      font-weight: 500;
+      margin-top: 16px;
+    }
+    .loading.show { display: flex; }
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2.5px solid rgba(99,102,241,.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Video cards ─────────────────────────────────────────── */
+    .videos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; margin-top: 20px; }
+    .video-card {
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: white;
+      transition: border-color .2s, box-shadow .2s;
+      cursor: pointer;
+    }
+    .video-card:hover { border-color: var(--primary-light); box-shadow: 0 4px 16px rgba(99,102,241,.15); }
+    .video-card.selected { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,.15); }
+    .video-thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; background: #dde; }
+    .video-info { padding: 14px; }
+    .video-title { font-size: .88rem; font-weight: 600; line-height: 1.4; color: var(--text); }
+    .video-meta  { font-size: .76rem; color: var(--text-muted); margin-top: 6px; }
+    .video-badge { display: inline-block; background: var(--primary); color: white; font-size: .7rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; margin-top: 6px; }
+    .video-stats { display: flex; gap: 10px; margin-top: 6px; font-size: .75rem; color: var(--text-muted); flex-wrap: wrap; }
+    .video-stats span { display: flex; align-items: center; gap: 3px; }
+    .view-count-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+    .view-count-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-light)); border-radius: 2px; transition: width .6s ease; }
+
+    /* ─── Step indicators ────────────────────────────────────── */
+    .steps { display: flex; align-items: center; gap: 0; margin-bottom: 28px; }
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .step-num {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+    .step.active .step-num { background: var(--primary); color: white; }
+    .step.active { color: var(--primary-dark); }
+    .step.done .step-num { background: var(--success); color: white; }
+    .step-line { flex: 1; height: 2px; background: var(--border); margin: 0 8px; }
+
+    /* ─── Alert / Notice ─────────────────────────────────────── */
+    .alert {
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-size: .88rem;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .alert-info    { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+    .alert-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+    .alert-warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+    .alert-error   { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+
+    /* ─────────────────────────────────────────────────────────── */
+    /*  LESSON MATERIAL (Screen + Print)                          */
+    /* ─────────────────────────────────────────────────────────── */
+    #lessonOutput { display: none; }
+    #lessonOutput.show { display: block; }
+
+    .lesson-sheet {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+
+    /* Header band */
+    .ls-header {
+      background: var(--primary-dark);
+      color: white;
+      padding: 24px 36px;
+      position: relative;
+    }
+    .ls-header .ls-label {
+      font-size: .72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: .7;
+      margin-bottom: 4px;
+    }
+    .ls-header h2 { font-size: 1.45rem; font-weight: 800; letter-spacing: -.3px; }
+    .ls-meta {
+      display: flex;
+      gap: 20px;
+      margin-top: 10px;
+      font-size: .82rem;
+      opacity: .85;
+    }
+    .ls-meta span { display: flex; align-items: center; gap: 5px; }
+
+    /* Video reference */
+    .ls-video-ref {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 36px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+    }
+    .ls-video-ref img { width: 100px; border-radius: 6px; flex-shrink: 0; }
+    .ls-video-ref .ref-info { flex: 1; }
+    .ls-video-ref .ref-title { font-size: .92rem; font-weight: 600; color: var(--text); }
+    .ls-video-ref .ref-channel { font-size: .8rem; color: var(--text-muted); margin-top: 2px; }
+    .ls-video-ref a { font-size: .8rem; color: var(--primary); text-decoration: none; font-weight: 500; }
+
+    /* Content sections */
+    .ls-body { padding: 32px 36px; }
+
+    .ls-section { margin-bottom: 36px; }
+    .ls-section-title {
+      font-size: .82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--primary);
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 6px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Summary */
+    .ls-summary {
+      background: #fafbff;
+      border-left: 4px solid var(--primary);
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px;
+      font-size: .9rem;
+      line-height: 1.7;
+    }
+    .ls-summary-ko {
+      margin-top: 8px;
+      font-size: .85rem;
+      color: var(--text-muted);
+    }
+
+    /* Key Expressions */
+    .expr-table { width: 100%; border-collapse: collapse; }
+    .expr-table th {
+      background: var(--primary);
+      color: white;
+      padding: 9px 14px;
+      font-size: .78rem;
+      text-align: left;
+      font-weight: 600;
+    }
+    .expr-table td {
+      padding: 11px 14px;
+      font-size: .87rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .expr-table tr:nth-child(even) td { background: #fafbff; }
+    .expr-phrase { font-weight: 700; color: var(--primary-dark); }
+    .expr-ko { font-size: .78rem; color: var(--text-muted); margin-top: 3px; }
+    .expr-example { font-style: italic; color: var(--text-muted); font-size: .83rem; margin-top: 4px; }
+    .expr-example::before { content: '예) '; font-weight: 600; font-style: normal; }
+
+    /* Vocabulary */
+    .vocab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+    .vocab-item {
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      background: #fafbff;
+    }
+    .vocab-word { font-weight: 700; color: var(--primary-dark); font-size: .9rem; }
+    .vocab-pos  { font-size: .72rem; color: var(--accent); font-weight: 600; text-transform: uppercase; }
+    .vocab-def  { font-size: .82rem; color: var(--text-muted); margin-top: 3px; }
+
+    /* Script */
+    .script-box {
+      background: #fafafa;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      font-size: .88rem;
+      line-height: 1.9;
+      max-height: 380px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Questions */
+    .questions-list { list-style: none; }
+    .questions-list li {
+      display: flex;
+      gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: .9rem;
+      align-items: flex-start;
+    }
+    .questions-list li:last-child { border-bottom: none; }
+    .q-num {
+      width: 24px; height: 24px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .q-disc .q-num { background: var(--accent); }
+    .q-answer-line {
+      height: 24px;
+      border-bottom: 1px solid #ccc;
+      margin-top: 4px;
+    }
+
+    /* PDF Export button row */
+    .export-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    /* ─── Progress bar ───────────────────────────────────────── */
+    .progress-bar {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--primary-light));
+      width: 0%;
+      transition: width .4s ease;
+    }
+
+    /* ─── Responsive ─────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .ls-body { padding: 20px; }
+      .ls-video-ref { flex-direction: column; }
+    }
+
+    /* ─────────────────────────────────────────────────────────── */
+    /*  PRINT STYLES                                              */
+    /* ─────────────────────────────────────────────────────────── */
+    @media print {
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+      body { background: white; font-size: 11pt; }
+
+      .app-header, .search-section, .no-print, .export-bar, .steps { display: none !important; }
+
+      #lessonOutput { display: block !important; }
+
+      .lesson-sheet {
+        box-shadow: none;
+        border: none;
+        break-inside: avoid;
+        page-break-after: always;
+        margin-bottom: 0;
+      }
+
+      .ls-header { background: var(--primary-dark) !important; color: white !important; padding: 18px 24px; }
+      .ls-header h2 { font-size: 14pt; }
+
+      .ls-video-ref { padding: 10px 24px; }
+      .ls-video-ref img { display: none; }
+
+      .ls-body { padding: 18px 24px; }
+
+      .ls-section { margin-bottom: 20px; break-inside: avoid; }
+
+      .script-box { max-height: none; font-size: 9.5pt; overflow: visible; }
+
+      .vocab-grid { grid-template-columns: repeat(3, 1fr); }
+
+      .expr-table th { background: var(--primary) !important; -webkit-print-color-adjust: exact; }
+      .expr-table tr:nth-child(even) td { background: #f0f4ff !important; }
+
+      a { text-decoration: underline; }
+      a[href]::after { content: ' (' attr(href) ')'; font-size: 8pt; color: #666; }
+
+      @page {
+        margin: 15mm 18mm;
+        size: A4 portrait;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── App Header ─────────────────────────────────────────────────── -->
+<header class="app-header">
+  <h1>English Lesson Generator</h1>
+  <p>YouTube · Podcast → Key Expressions · Script → Print-ready PDF Worksheet</p>
+</header>
+
+<div class="container">
+
+  <!-- ─── Step indicators ─────────────────────────────────────────── -->
+  <div class="steps no-print">
+    <div class="step active" id="step1">
+      <div class="step-num">1</div>
+      <span>설정 &amp; 주제 입력</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step2">
+      <div class="step-num">2</div>
+      <span>YouTube 영상 선택</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step3">
+      <div class="step-num">3</div>
+      <span>수업 자료 생성 &amp; PDF</span>
+    </div>
+  </div>
+
+  <!-- ─── Section 1: Settings ──────────────────────────────────────── -->
+  <div class="search-section">
+    <div class="card">
+      <div class="card-title"><span>🔑</span> API 키 설정</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>YouTube Data API v3 Key</label>
+          <input type="password" id="ytApiKey" placeholder="AIza..." autocomplete="off" />
+          <div class="hint">
+            <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank">Google Cloud Console</a>에서 무료 발급 → YouTube Data API v3 활성화
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Anthropic Claude API Key</label>
+          <input type="password" id="claudeApiKey" placeholder="sk-ant-..." autocomplete="off" />
+          <div class="hint">
+            <a href="https://console.anthropic.com/keys" target="_blank">console.anthropic.com</a>에서 발급 · Key Expressions &amp; 수업자료 생성에 사용
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span>🎯</span> 수업 주제 &amp; 설정</div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>수업 주제 (Topic)</label>
+          <input type="text" id="topicInput" placeholder="예: climate change / artificial intelligence / healthy eating habits / social media" />
+        </div>
+        <div class="form-group">
+          <label>학습자 수준</label>
+          <select id="levelSelect">
+            <option value="beginner">Beginner (A1–A2)</option>
+            <option value="intermediate" selected>Intermediate (B1–B2)</option>
+            <option value="advanced">Advanced (C1–C2)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>콘텐츠 유형</label>
+          <select id="contentType">
+            <option value="youtube">YouTube Video</option>
+            <option value="podcast">Podcast</option>
+            <option value="both" selected>YouTube + Podcast (혼합)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>기간 필터</label>
+          <select id="periodFilter">
+            <option value="6m">최근 6개월</option>
+            <option value="1y" selected>최근 1년</option>
+            <option value="2y">최근 2년</option>
+            <option value="all">전체 (기간 제한 없음)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>수업 날짜</label>
+          <input type="date" id="lessonDate" />
+        </div>
+        <div class="form-group">
+          <label>학습자 그룹 / 학급명</label>
+          <input type="text" id="className" placeholder="예: Advanced Class B" />
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="searchVideos()">
+          🔍 YouTube 검색 (3개)
+        </button>
+      </div>
+
+      <div class="loading" id="searchLoading">
+        <div class="spinner"></div>
+        <span>YouTube에서 관련 영상을 검색 중입니다...</span>
+      </div>
+      <div class="progress-bar" id="searchProgress" style="display:none;">
+        <div class="progress-fill" id="searchFill"></div>
+      </div>
+    </div>
+
+    <!-- ─── Section 2: Video Results ──────────────────────────────── -->
+    <div id="videoSection" style="display:none;">
+      <div class="card">
+        <div class="card-title"><span>🎬</span> 관련 YouTube 영상 <small style="font-weight:400;color:var(--text-muted);margin-left:8px;">— 수업에 사용할 영상을 선택하세요</small></div>
+
+        <div class="alert alert-info">
+          💡 영상 카드를 클릭해서 선택한 뒤 <strong>수업자료 생성</strong> 버튼을 눌러주세요. 복수 선택 가능 (각각 별도 PDF 시트 생성).
+        </div>
+
+        <div class="videos-grid" id="videosGrid"></div>
+
+        <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border);">
+          <div class="form-group">
+            <label>✍️ 스크립트 직접 입력 (선택사항) — 자동 트랜스크립트 대신 사용</label>
+            <textarea id="manualTranscript" rows="4" placeholder="유튜브 스크립트를 여기에 붙여넣기 하면 자동 추출 없이 이 내용이 사용됩니다."></textarea>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-success" onclick="generateLesson()">
+            ✨ 선택 영상으로 수업자료 생성
+          </button>
+        </div>
+
+        <div class="loading" id="genLoading">
+          <div class="spinner"></div>
+          <span id="genLoadingText">Claude AI로 Key Expressions &amp; 수업자료를 생성 중입니다...</span>
+        </div>
+        <div class="progress-bar" id="genProgress" style="display:none;">
+          <div class="progress-fill" id="genFill"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Section 3: Lesson Output ───────────────────────────────── -->
+  <div id="lessonOutput">
+
+    <div class="export-bar no-print">
+      <button class="btn btn-accent" onclick="window.print()">🖨️ PDF 출력 / 인쇄</button>
+      <button class="btn btn-success" onclick="saveAsHTML()">💾 HTML 파일로 저장</button>
+      <button class="btn btn-outline" onclick="resetAll()">↩️ 새 수업 만들기</button>
+      <span style="font-size:.82rem;color:var(--text-muted);">PDF: 브라우저 인쇄 → <strong>PDF로 저장</strong> &nbsp;|&nbsp; HTML: 오프라인에서도 열람 가능</span>
+    </div>
+
+    <div id="lessonSheets"></div>
+
+  </div>
+
+</div><!-- /container -->
+
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<!--  JAVASCRIPT                                                        -->
+<!-- ─────────────────────────────────────────────────────────────────── -->
+<script>
+/* ── Helpers ──────────────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    const el = $(`step${i}`);
+    el.classList.remove('active','done');
+    if (i < n)  el.classList.add('done');
+    if (i === n) el.classList.add('active');
+  });
+}
+
+function showLoading(loaderId, progressId, fillId) {
+  $(loaderId).classList.add('show');
+  $(progressId).style.display = 'block';
+  animateProgress(fillId, 80, 2200);
+}
+function hideLoading(loaderId, progressId, fillId) {
+  $(loaderId).classList.remove('show');
+  animateFill(fillId, 100, 300, () => {
+    $(progressId).style.display = 'none';
+    $(fillId).style.width = '0%';
+  });
+}
+function animateProgress(fillId, targetPct, durationMs) {
+  const fill = $(fillId);
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min((now - start) / durationMs, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    fill.style.width = (ease * targetPct) + '%';
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+function animateFill(fillId, to, dur, cb) {
+  const fill = $(fillId);
+  const from = parseFloat(fill.style.width) || 0;
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min((now - start) / dur, 1);
+    fill.style.width = (from + (to - from) * t) + '%';
+    if (t < 1) requestAnimationFrame(step);
+    else if (cb) cb();
+  }
+  requestAnimationFrame(step);
+}
+
+/* ── State ────────────────────────────────────────────────────────── */
+let selectedVideos = new Set();
+let videoDataMap   = {};  // videoId → { title, channel, thumb, url, description }
+
+/* ── Init ─────────────────────────────────────────────────────────── */
+window.addEventListener('DOMContentLoaded', () => {
+  const today = new Date().toISOString().split('T')[0];
+  $('lessonDate').value = today;
+
+  // Restore saved API keys (session)
+  ['ytApiKey','claudeApiKey'].forEach(id => {
+    const saved = sessionStorage.getItem(id);
+    if (saved) $(id).value = saved;
+    $(id).addEventListener('input', () => sessionStorage.setItem(id, $(id).value));
+  });
+});
+
+/* ── Step 1 → 2: Search YouTube ───────────────────────────────────── */
+async function searchVideos() {
+  const ytKey  = $('ytApiKey').value.trim();
+  const topic  = $('topicInput').value.trim();
+  const level  = $('levelSelect').value;
+  const type   = $('contentType').value;
+  const period = $('periodFilter').value;
+
+  if (!ytKey)  return alert('YouTube API Key를 입력해주세요.');
+  if (!topic)  return alert('수업 주제를 입력해주세요.');
+
+  // Build search query
+  const levelMap = { beginner: 'easy english', intermediate: 'english lesson', advanced: 'english discussion' };
+  let query = `${topic} ${levelMap[level]}`;
+  if (type === 'podcast') query += ' podcast';
+
+  // publishedAfter date
+  let publishedAfter = '';
+  if (period !== 'all') {
+    const d = new Date();
+    if (period === '6m') d.setMonth(d.getMonth() - 6);
+    if (period === '1y') d.setFullYear(d.getFullYear() - 1);
+    if (period === '2y') d.setFullYear(d.getFullYear() - 2);
+    publishedAfter = d.toISOString();
+  }
+
+  setStep(2);
+  showLoading('searchLoading', 'searchProgress', 'searchFill');
+  $('videoSection').style.display = 'none';
+  selectedVideos.clear();
+  videoDataMap = {};
+
+  try {
+    // 1) Search API — order=viewCount + publishedAfter, fetch 9 candidates
+    let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoCaption=closedCaption&order=viewCount&maxResults=9&relevanceLanguage=en&hl=en&key=${ytKey}`;
+    if (publishedAfter) searchUrl += `&publishedAfter=${encodeURIComponent(publishedAfter)}`;
+
+    const searchRes = await fetch(searchUrl);
+    if (!searchRes.ok) {
+      const err = await searchRes.json();
+      throw new Error(err?.error?.message || `HTTP ${searchRes.status}`);
+    }
+    const searchData = await searchRes.json();
+    const candidates = searchData.items || [];
+
+    if (candidates.length === 0) throw new Error('검색 결과가 없습니다. 기간을 넓히거나 다른 주제를 입력해보세요.');
+
+    // 2) videos.list — get statistics + contentDetails for all candidates
+    const ids = candidates.map(i => i.id.videoId).join(',');
+    const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=${ids}&key=${ytKey}`;
+    const statsRes  = await fetch(statsUrl);
+    const statsData = await statsRes.json();
+
+    // Build stats map: videoId → { viewCount, likeCount, duration }
+    const statsMap = {};
+    (statsData.items || []).forEach(v => {
+      statsMap[v.id] = {
+        viewCount: parseInt(v.statistics?.viewCount || 0, 10),
+        likeCount: parseInt(v.statistics?.likeCount || 0, 10),
+        duration:  parseDuration(v.contentDetails?.duration || ''),
+      };
+    });
+
+    // 3) Sort candidates by viewCount descending, pick top 3
+    const sorted = candidates
+      .filter(i => statsMap[i.id.videoId])
+      .sort((a, b) => (statsMap[b.id.videoId]?.viewCount || 0) - (statsMap[a.id.videoId]?.viewCount || 0))
+      .slice(0, 3);
+
+    if (sorted.length === 0) throw new Error('유효한 검색 결과가 없습니다. 다른 주제를 시도해보세요.');
+
+    renderVideos(sorted, statsMap);
+    hideLoading('searchLoading', 'searchProgress', 'searchFill');
+    $('videoSection').style.display = 'block';
+
+  } catch(err) {
+    hideLoading('searchLoading', 'searchProgress', 'searchFill');
+    showAlert('searchAlertBox', 'error', `검색 오류: ${err.message}`);
+    setStep(1);
+  }
+}
+
+/* ── ISO 8601 duration → "mm:ss" / "hh:mm:ss" ──────────────────── */
+function parseDuration(iso) {
+  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!m) return '';
+  const h = parseInt(m[1] || 0), min = parseInt(m[2] || 0), s = parseInt(m[3] || 0);
+  if (h > 0) return `${h}:${String(min).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  return `${min}:${String(s).padStart(2,'0')}`;
+}
+
+/* ── Format view count → "1.2M", "340K" ────────────────────────── */
+function fmtViews(n) {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+  if (n >= 1_000)     return Math.round(n / 1_000) + 'K';
+  return String(n);
+}
+
+function renderVideos(items, statsMap) {
+  const grid = $('videosGrid');
+  grid.innerHTML = '';
+
+  // Max view count for relative bar
+  const maxViews = Math.max(...items.map(i => statsMap[i.id.videoId]?.viewCount || 0), 1);
+
+  items.forEach((item, idx) => {
+    const vid   = item.id.videoId;
+    const snip  = item.snippet;
+    const thumb = snip.thumbnails?.medium?.url || snip.thumbnails?.default?.url || '';
+    const title = snip.title;
+    const chan   = snip.channelTitle;
+    const desc   = snip.description;
+    const date   = snip.publishedAt?.substring(0,10) || '';
+    const stats  = statsMap[vid] || {};
+    const views  = stats.viewCount || 0;
+    const dur    = stats.duration  || '';
+    const pct    = Math.round((views / maxViews) * 100);
+
+    videoDataMap[vid] = { title, channel: chan, thumb, url: `https://www.youtube.com/watch?v=${vid}`, description: desc, publishedAt: date, viewCount: views };
+
+    const card = document.createElement('div');
+    card.className = 'video-card';
+    card.dataset.vid = vid;
+    card.innerHTML = `
+      <div style="position:relative;">
+        <img class="video-thumb" src="${thumb}" alt="${escHtml(title)}" loading="lazy" />
+        ${dur ? `<span style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.75);color:#fff;font-size:.72rem;font-weight:600;padding:2px 6px;border-radius:4px;">${dur}</span>` : ''}
+      </div>
+      <div class="video-info">
+        <div class="video-title">${escHtml(title)}</div>
+        <div class="video-meta">📺 ${escHtml(chan)} &nbsp;·&nbsp; ${date}</div>
+        <div class="video-stats">
+          <span>👁️ ${fmtViews(views)} views</span>
+          ${stats.likeCount ? `<span>👍 ${fmtViews(stats.likeCount)}</span>` : ''}
+        </div>
+        <div class="view-count-bar"><div class="view-count-fill" style="width:${pct}%"></div></div>
+        <div style="margin-top:8px;"><span class="video-badge">🏆 인기순 ${idx+1}위</span></div>
+      </div>`;
+    card.addEventListener('click', () => toggleVideo(vid, card));
+    grid.appendChild(card);
+  });
+
+  // Auto-select first card
+  const first = grid.querySelector('.video-card');
+  if (first) first.click();
+}
+
+function toggleVideo(vid, card) {
+  if (selectedVideos.has(vid)) {
+    selectedVideos.delete(vid);
+    card.classList.remove('selected');
+  } else {
+    selectedVideos.add(vid);
+    card.classList.add('selected');
+  }
+}
+
+/* ── Step 2 → 3: Generate Lesson ─────────────────────────────────── */
+async function generateLesson() {
+  const claudeKey = $('claudeApiKey').value.trim();
+  if (!claudeKey) return alert('Anthropic Claude API Key를 입력해주세요.');
+
+  if (selectedVideos.size === 0) {
+    return alert('수업에 사용할 영상을 최소 1개 선택해주세요.');
+  }
+
+  const manualScript = $('manualTranscript').value.trim();
+  const level    = $('levelSelect').value;
+  const date     = $('lessonDate').value;
+  const className = $('className').value.trim();
+  const topic    = $('topicInput').value.trim();
+
+  setStep(3);
+  showLoading('genLoading', 'genProgress', 'genFill');
+  $('lessonOutput').classList.remove('show');
+  $('lessonSheets').innerHTML = '';
+
+  const vids = [...selectedVideos];
+
+  try {
+    for (let i = 0; i < vids.length; i++) {
+      const vid  = vids[i];
+      const info = videoDataMap[vid];
+
+      $('genLoadingText').textContent = `[${i+1}/${vids.length}] "${info.title}" 수업자료 생성 중...`;
+
+      // 1. Try to fetch transcript via CORS proxy
+      let transcript = manualScript || '';
+      if (!transcript) {
+        transcript = await fetchTranscript(vid);
+      }
+
+      // 2. Ask Claude to generate lesson content
+      const lessonData = await callClaude(claudeKey, info, transcript, level, topic);
+
+      // 3. Render the lesson sheet
+      renderLessonSheet(info, lessonData, transcript, level, date, className, topic);
+    }
+
+    hideLoading('genLoading', 'genProgress', 'genFill');
+    $('lessonOutput').classList.add('show');
+    $('lessonOutput').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch(err) {
+    hideLoading('genLoading', 'genProgress', 'genFill');
+    alert(`수업자료 생성 오류: ${err.message}`);
+    setStep(2);
+  }
+}
+
+/* ── Fetch YouTube Transcript ─────────────────────────────────────── */
+async function fetchTranscript(videoId) {
+  // Try YouTube's timedtext API via a CORS proxy
+  const proxies = [
+    `https://corsproxy.io/?https://www.youtube.com/api/timedtext?lang=en&v=${videoId}`,
+    `https://corsproxy.io/?https://www.youtube.com/api/timedtext?lang=en-US&v=${videoId}`,
+  ];
+
+  for (const proxyUrl of proxies) {
+    try {
+      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(6000) });
+      if (!res.ok) continue;
+      const text = await res.text();
+      if (text && text.includes('<text')) {
+        // Parse XML captions
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(text, 'text/xml');
+        const nodes = xml.querySelectorAll('text');
+        if (nodes.length > 0) {
+          let script = '';
+          nodes.forEach(n => {
+            script += (n.textContent || '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'").replace(/&quot;/g,'"') + ' ';
+          });
+          return script.replace(/\s+/g,' ').trim();
+        }
+      }
+    } catch(_) { /* continue */ }
+  }
+  return ''; // No transcript available
+}
+
+/* ── Call Claude API ──────────────────────────────────────────────── */
+async function callClaude(apiKey, videoInfo, transcript, level, topic) {
+  const levelLabel = { beginner: 'Beginner (A1-A2)', intermediate: 'Intermediate (B1-B2)', advanced: 'Advanced (C1-C2)' }[level];
+
+  const transcriptSection = transcript
+    ? `\n\n<transcript>\n${transcript.slice(0, 6000)}\n</transcript>`
+    : `\n\n(No transcript available — generate content based on the video title and description.)`;
+
+  const prompt = `You are an expert English language teacher creating a lesson worksheet for ${levelLabel} students.
+
+Video Information:
+- Title: ${videoInfo.title}
+- Channel: ${videoInfo.channel}
+- Description: ${videoInfo.description?.slice(0, 500) || 'N/A'}
+- Topic: ${topic}${transcriptSection}
+
+Please create a comprehensive English lesson material in JSON format. Return ONLY valid JSON, no markdown fences.
+
+{
+  "summary_en": "2–3 sentence summary of the video content in English",
+  "summary_ko": "한국어 요약 (2–3문장)",
+  "key_expressions": [
+    {
+      "expression": "phrasal verb / idiom / key phrase",
+      "translation_ko": "한국어 번역",
+      "explanation": "Clear English explanation of meaning and usage",
+      "example1": "Natural example sentence using this expression",
+      "example2": "Another example sentence in a different context"
+    }
+    // 6–8 items total — choose expressions appropriate for ${levelLabel} level
+  ],
+  "vocabulary": [
+    {
+      "word": "word or phrase",
+      "pos": "n./v./adj./adv./phrase",
+      "definition_ko": "한국어 뜻"
+    }
+    // 8–10 items total
+  ],
+  "comprehension_questions": [
+    "Question 1?",
+    "Question 2?",
+    "Question 3?",
+    "Question 4?",
+    "Question 5?"
+  ],
+  "discussion_questions": [
+    "Open-ended discussion question 1?",
+    "Open-ended discussion question 2?",
+    "Open-ended discussion question 3?"
+  ],
+  "teacher_notes": "Brief note for the teacher about how to use this material"
+}`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-opus-4-6',
+      max_tokens: 3000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `Claude API 오류 (${response.status})`);
+  }
+
+  const data = await response.json();
+  const raw  = data.content?.[0]?.text || '{}';
+
+  // Strip markdown code fences if present
+  const cleaned = raw.replace(/^```json?\n?/,'').replace(/\n?```$/,'').trim();
+  return JSON.parse(cleaned);
+}
+
+/* ── Render Lesson Sheet ──────────────────────────────────────────── */
+function renderLessonSheet(videoInfo, data, transcript, level, date, className, topic) {
+  const levelLabel = { beginner: 'Beginner (A1–A2)', intermediate: 'Intermediate (B1–B2)', advanced: 'Advanced (C1–C2)' }[level];
+  const levelColor = { beginner: '#10b981', intermediate: '#4f46e5', advanced: '#ef4444' }[level];
+
+  // Key expressions table
+  const exprRows = (data.key_expressions || []).map((e, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>
+        <div class="expr-phrase">${escHtml(e.expression)}</div>
+        <div class="expr-ko">${escHtml(e.translation_ko)}</div>
+      </td>
+      <td>${escHtml(e.explanation)}</td>
+      <td>
+        <div class="expr-example">${escHtml(e.example1)}</div>
+        <div class="expr-example">${escHtml(e.example2)}</div>
+      </td>
+    </tr>`).join('');
+
+  // Vocabulary grid
+  const vocabItems = (data.vocabulary || []).map(v => `
+    <div class="vocab-item">
+      <div class="vocab-word">${escHtml(v.word)}</div>
+      <div class="vocab-pos">${escHtml(v.pos || '')}</div>
+      <div class="vocab-def">${escHtml(v.definition_ko)}</div>
+    </div>`).join('');
+
+  // Comprehension questions
+  const compQs = (data.comprehension_questions || []).map((q, i) => `
+    <li>
+      <div class="q-num">${i+1}</div>
+      <div style="flex:1;">
+        <div>${escHtml(q)}</div>
+        <div class="q-answer-line"></div>
+      </div>
+    </li>`).join('');
+
+  // Discussion questions
+  const discQs = (data.discussion_questions || []).map((q, i) => `
+    <li class="q-disc">
+      <div class="q-num">${i+1}</div>
+      <div>${escHtml(q)}</div>
+    </li>`).join('');
+
+  // Script section
+  let scriptSection = '';
+  if (transcript) {
+    // Show first ~800 chars + ellipsis for brevity on screen; full for print
+    const display = transcript.length > 1200
+      ? transcript.slice(0, 1200) + '…\n\n[전체 스크립트는 아래 링크에서 확인하세요]'
+      : transcript;
+    scriptSection = `
+      <div class="ls-section">
+        <div class="ls-section-title">📜 Script / Transcript</div>
+        <div class="script-box">${escHtml(display)}</div>
+      </div>`;
+  } else {
+    scriptSection = `
+      <div class="ls-section">
+        <div class="ls-section-title">📜 Script / Transcript</div>
+        <div class="alert alert-warning">⚠️ 이 영상의 자동 자막을 가져올 수 없습니다. YouTube에서 영상을 열어 자막을 복사하거나, 위의 스크립트 입력란에 붙여넣은 후 재생성해주세요.</div>
+        <div class="script-box" style="min-height:120px;background:#fafafa;color:#aaa;font-style:italic;">스크립트가 없습니다. YouTube 영상에서 직접 복사하여 사용하세요.</div>
+      </div>`;
+  }
+
+  // Teacher notes
+  const teacherNotes = data.teacher_notes ? `
+    <div class="ls-section no-print">
+      <div class="ls-section-title">🗒️ Teacher Notes</div>
+      <div class="ls-summary">${escHtml(data.teacher_notes)}</div>
+    </div>` : '';
+
+  const sheet = document.createElement('div');
+  sheet.className = 'lesson-sheet';
+  sheet.innerHTML = `
+    <!-- HEADER -->
+    <div class="ls-header">
+      <div class="ls-label">English Lesson Worksheet</div>
+      <h2>${escHtml(topic.toUpperCase())}</h2>
+      <div class="ls-meta">
+        <span>📅 ${date || 'Date: ____________'}</span>
+        <span>👥 ${className || 'Class: ____________'}</span>
+        <span style="background:${levelColor};padding:2px 10px;border-radius:12px;font-weight:700;">${levelLabel}</span>
+        <span>✏️ Name: _______________________</span>
+      </div>
+    </div>
+
+    <!-- VIDEO REFERENCE -->
+    <div class="ls-video-ref">
+      <img src="${videoInfo.thumb}" alt="thumbnail" />
+      <div class="ref-info">
+        <div class="ref-title">${escHtml(videoInfo.title)}</div>
+        <div class="ref-channel">📺 ${escHtml(videoInfo.channel)}</div>
+        <a href="${videoInfo.url}" target="_blank">▶ ${videoInfo.url}</a>
+      </div>
+    </div>
+
+    <!-- BODY -->
+    <div class="ls-body">
+
+      <!-- Summary -->
+      <div class="ls-section">
+        <div class="ls-section-title">📋 Content Summary</div>
+        <div class="ls-summary">
+          ${escHtml(data.summary_en || '')}
+          <div class="ls-summary-ko">🇰🇷 ${escHtml(data.summary_ko || '')}</div>
+        </div>
+      </div>
+
+      <!-- Key Expressions -->
+      <div class="ls-section">
+        <div class="ls-section-title">💡 Key Expressions</div>
+        <table class="expr-table">
+          <thead>
+            <tr>
+              <th style="width:32px;">#</th>
+              <th style="width:200px;">Expression</th>
+              <th>Explanation</th>
+              <th>Examples</th>
+            </tr>
+          </thead>
+          <tbody>${exprRows}</tbody>
+        </table>
+      </div>
+
+      <!-- Vocabulary -->
+      <div class="ls-section">
+        <div class="ls-section-title">📖 Vocabulary</div>
+        <div class="vocab-grid">${vocabItems}</div>
+      </div>
+
+      <!-- Script -->
+      ${scriptSection}
+
+      <!-- Comprehension Questions -->
+      <div class="ls-section">
+        <div class="ls-section-title">❓ Comprehension Questions</div>
+        <ul class="questions-list">${compQs}</ul>
+      </div>
+
+      <!-- Discussion Questions -->
+      <div class="ls-section">
+        <div class="ls-section-title">💬 Discussion Questions</div>
+        <ul class="questions-list">${discQs}</ul>
+      </div>
+
+      ${teacherNotes}
+
+    </div><!-- /ls-body -->
+  `;
+
+  $('lessonSheets').appendChild(sheet);
+}
+
+/* ── Alert helper ─────────────────────────────────────────────────── */
+function showAlert(containerId, type, msg) {
+  let box = $(containerId);
+  if (!box) {
+    box = document.createElement('div');
+    box.id = containerId;
+    $('videoSection') ? $('videoSection').prepend(box) : document.querySelector('.search-section').append(box);
+  }
+  box.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+}
+
+/* ── Escape HTML ──────────────────────────────────────────────────── */
+function escHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* ── Save as HTML ─────────────────────────────────────────────────── */
+function saveAsHTML() {
+  const sheetsHTML = $('lessonSheets').innerHTML;
+  const topic      = $('topicInput').value.trim() || 'lesson';
+  const date       = $('lessonDate').value || new Date().toISOString().slice(0,10);
+  const fileName   = `english_lesson_${topic.replace(/\s+/g,'_')}_${date}.html`;
+
+  const html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>English Lesson · ${escHtml(topic)} · ${date}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary:#4f46e5; --primary-light:#818cf8; --primary-dark:#3730a3;
+      --accent:#f59e0b; --success:#10b981; --danger:#ef4444;
+      --bg:#f8fafc; --surface:#ffffff; --border:#e2e8f0;
+      --text:#1e293b; --text-muted:#64748b; --radius:12px;
+      --shadow:0 1px 3px rgba(0,0,0,.08),0 8px 24px rgba(0,0,0,.05);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;padding:32px 20px}
+    .export-bar{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;align-items:center}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;border:none;transition:all .18s;text-decoration:none}
+    .btn-accent{background:var(--accent);color:white}
+    .btn-accent:hover{background:#d97706}
+    .lesson-sheet{background:white;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:32px;overflow:hidden}
+    .ls-header{background:var(--primary-dark);color:white;padding:24px 36px}
+    .ls-header .ls-label{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;opacity:.7;margin-bottom:4px}
+    .ls-header h2{font-size:1.45rem;font-weight:800;letter-spacing:-.3px}
+    .ls-meta{display:flex;gap:20px;margin-top:10px;font-size:.82rem;opacity:.85;flex-wrap:wrap}
+    .ls-video-ref{display:flex;align-items:center;gap:16px;padding:16px 36px;background:#f8fafc;border-bottom:1px solid var(--border)}
+    .ls-video-ref img{width:100px;border-radius:6px;flex-shrink:0}
+    .ls-video-ref .ref-title{font-size:.92rem;font-weight:600}
+    .ls-video-ref .ref-channel{font-size:.8rem;color:var(--text-muted);margin-top:2px}
+    .ls-video-ref a{font-size:.8rem;color:var(--primary);text-decoration:none;font-weight:500}
+    .ls-body{padding:32px 36px}
+    .ls-section{margin-bottom:36px}
+    .ls-section-title{font-size:.82rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--primary);border-bottom:2px solid var(--primary);padding-bottom:6px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+    .ls-summary{background:#fafbff;border-left:4px solid var(--primary);border-radius:0 8px 8px 0;padding:14px 18px;font-size:.9rem;line-height:1.7}
+    .ls-summary-ko{margin-top:8px;font-size:.85rem;color:var(--text-muted)}
+    .expr-table{width:100%;border-collapse:collapse}
+    .expr-table th{background:var(--primary);color:white;padding:9px 14px;font-size:.78rem;text-align:left;font-weight:600}
+    .expr-table td{padding:11px 14px;font-size:.87rem;border-bottom:1px solid var(--border);vertical-align:top}
+    .expr-table tr:nth-child(even) td{background:#fafbff}
+    .expr-phrase{font-weight:700;color:var(--primary-dark)}
+    .expr-ko{font-size:.78rem;color:var(--text-muted);margin-top:3px}
+    .expr-example{font-style:italic;color:var(--text-muted);font-size:.83rem;margin-top:4px}
+    .expr-example::before{content:'예) ';font-weight:600;font-style:normal}
+    .vocab-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+    .vocab-item{border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;background:#fafbff}
+    .vocab-word{font-weight:700;color:var(--primary-dark);font-size:.9rem}
+    .vocab-pos{font-size:.72rem;color:var(--accent);font-weight:600;text-transform:uppercase}
+    .vocab-def{font-size:.82rem;color:var(--text-muted);margin-top:3px}
+    .script-box{background:#fafafa;border:1.5px solid var(--border);border-radius:8px;padding:20px 24px;font-size:.88rem;line-height:1.9;white-space:pre-wrap;font-family:'Inter',sans-serif}
+    .questions-list{list-style:none}
+    .questions-list li{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);font-size:.9rem;align-items:flex-start}
+    .questions-list li:last-child{border-bottom:none}
+    .q-num{width:24px;height:24px;background:var(--primary);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0}
+    .q-disc .q-num{background:var(--accent)}
+    .q-answer-line{height:24px;border-bottom:1px solid #ccc;margin-top:4px}
+    .alert{border-radius:8px;padding:14px 18px;font-size:.88rem;margin-bottom:16px}
+    .alert-warning{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+    .no-print-note{background:#f0fdf4;border:1px solid #86efac;color:#166534;border-radius:8px;padding:12px 18px;font-size:.85rem;margin-bottom:20px}
+    @media print{
+      *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      body{background:white;padding:0}
+      .export-bar,.no-print-note{display:none!important}
+      .lesson-sheet{box-shadow:none;border:none;page-break-after:always;margin-bottom:0}
+      .ls-header{background:var(--primary-dark)!important;color:white!important;padding:18px 24px}
+      .ls-body{padding:18px 24px}
+      .script-box{max-height:none}
+      .vocab-grid{grid-template-columns:repeat(3,1fr)}
+      .expr-table th{background:var(--primary)!important}
+      .expr-table tr:nth-child(even) td{background:#f0f4ff!important}
+      @page{margin:15mm 18mm;size:A4 portrait}
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print-note">
+    💡 이 파일은 오프라인에서도 열람 가능합니다. 인쇄하려면 아래 버튼을 누르거나 브라우저 인쇄(Ctrl+P)를 사용하세요.
+  </div>
+  <div class="export-bar">
+    <button class="btn btn-accent" onclick="window.print()">🖨️ PDF 출력 / 인쇄</button>
+  </div>
+  ${sheetsHTML}
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = fileName;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/* ── Reset ─────────────────────────────────────────────────────────── */
+function resetAll() {
+  $('lessonOutput').classList.remove('show');
+  $('lessonSheets').innerHTML = '';
+  $('videoSection').style.display = 'none';
+  $('manualTranscript').value = '';
+  selectedVideos.clear();
+  videoDataMap = {};
+  setStep(1);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+
+</body>
+</html>
