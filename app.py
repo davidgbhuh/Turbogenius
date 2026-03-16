@@ -52,21 +52,19 @@ with st.sidebar:
     query = st.text_input("종목 검색 (이름 또는 코드)", placeholder="예: 삼성전자, 005930")
     filtered = search_stocks(stock_df, query)
 
-    if filtered.empty:
-        st.warning("검색 결과가 없습니다.")
-        st.info("아래에서 종목 코드를 직접 입력하세요.")
-
-    # 직접 코드 입력 (검색 결과 없을 때 또는 코드를 직접 아는 경우)
+    # 직접 코드 입력 (목록에 없는 종목도 조회 가능)
     direct_code = st.text_input(
         "종목 코드 직접 입력",
-        placeholder="예: 005930",
-        help="6자리 종목 코드를 직접 입력하면 바로 조회할 수 있습니다."
+        placeholder="예: 001440  (대한전선)",
+        help="6자리 종목 코드를 입력하면 목록에 없는 종목도 바로 조회됩니다.",
     )
 
+    # 선택 우선순위: 직접 입력 > 검색 결과
+    selected_ticker = None
+    selected_name = None
+
     if direct_code.strip():
-        # 직접 입력 우선 사용
         selected_ticker = direct_code.strip().zfill(6)
-        # 이름 조회 (목록에 있으면 표시, 없으면 코드 그대로)
         match = stock_df[stock_df["ticker"] == selected_ticker]
         selected_name = match.iloc[0]["name"] if not match.empty else selected_ticker
     elif not filtered.empty:
@@ -75,7 +73,8 @@ with st.sidebar:
         selected_ticker = selected.split(" | ")[0]
         selected_name = selected.split(" | ")[1]
     else:
-        st.stop()
+        if query:
+            st.warning(f"'{query}' 검색 결과가 없습니다. 위 코드 직접 입력창을 이용하세요.")
 
     # Period
     period_label = st.selectbox("조회 기간", list(PERIODS.keys()), index=3)
@@ -92,6 +91,10 @@ with st.sidebar:
     )
 
 # ─── Main area ───────────────────────────────────────────────────────────────
+if not selected_ticker:
+    st.info("왼쪽 사이드바에서 종목을 검색하거나 코드를 직접 입력하세요.\n\n예) 대한전선 → 코드 직접 입력에 `001440` 입력")
+    st.stop()
+
 st.header(f"{selected_name} ({selected_ticker})")
 
 # Load data
@@ -181,11 +184,14 @@ with tab3:
                     info = get_company_info(selected_ticker, market)
                     report = generate_report(info, summary, period_label, api_key)
                     st.session_state["ai_report"] = report
+                    st.session_state["ai_error"] = ""
                 except Exception as e:
                     st.session_state["ai_report"] = ""
-                    st.error(f"리포트 생성 중 오류가 발생했습니다: {e}")
+                    st.session_state["ai_error"] = str(e)
 
-        if st.session_state.get("ai_report"):
+        if st.session_state.get("ai_error"):
+            st.error(f"리포트 생성 중 오류가 발생했습니다: {st.session_state['ai_error']}")
+        elif st.session_state.get("ai_report"):
             st.markdown(st.session_state["ai_report"])
 
 with tab4:
