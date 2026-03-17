@@ -720,50 +720,59 @@ async function searchVideos() {
   videoDataMap = {};
 
   try {
-    // 1) Search API — relevance 정렬로 후보 수집 (viewCount + videoCaption 동시 사용 불가)
-    //    실제 조회수 정렬은 videos.list 통계 기반으로 직접 처리
+    // 1) Search API
     let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&order=relevance&maxResults=9&relevanceLanguage=en&hl=en&key=${ytKey}`;
     if (publishedAfter) searchUrl += `&publishedAfter=${encodeURIComponent(publishedAfter)}`;
 
+    console.log('[Search] URL:', searchUrl);
     const searchRes = await fetch(searchUrl);
-    if (!searchRes.ok) {
-      const err = await searchRes.json();
-      throw new Error(err?.error?.message || `HTTP ${searchRes.status}`);
-    }
     const searchData = await searchRes.json();
-    const candidates = searchData.items || [];
+    console.log('[Search] Response:', searchData);
+
+    if (!searchRes.ok) {
+      const msg = searchData?.error?.message || `HTTP ${searchRes.status}`;
+      throw new Error(`YouTube 검색 실패: ${msg}`);
+    }
+
+    const candidates = (searchData.items || []).filter(i => i.id?.videoId);
+    console.log('[Search] Candidates:', candidates.length);
 
     if (candidates.length === 0) throw new Error('검색 결과가 없습니다. 기간을 넓히거나 다른 주제를 입력해보세요.');
 
-    // 2) videos.list — get statistics + contentDetails for all candidates
-    const ids = candidates.map(i => i.id.videoId).join(',');
-    const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=${ids}&key=${ytKey}`;
-    const statsRes  = await fetch(statsUrl);
-    const statsData = await statsRes.json();
+    // 2) videos.list — statistics + contentDetails (실패해도 검색 결과는 표시)
+    let statsMap = {};
+    try {
+      const ids = candidates.map(i => i.id.videoId).join(',');
+      const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=${ids}&key=${ytKey}`;
+      console.log('[Stats] URL:', statsUrl);
+      const statsRes  = await fetch(statsUrl);
+      const statsData = await statsRes.json();
+      console.log('[Stats] Response:', statsData);
 
-    // Build stats map: videoId → { viewCount, likeCount, duration }
-    const statsMap = {};
-    (statsData.items || []).forEach(v => {
-      statsMap[v.id] = {
-        viewCount: parseInt(v.statistics?.viewCount || 0, 10),
-        likeCount: parseInt(v.statistics?.likeCount || 0, 10),
-        duration:  parseDuration(v.contentDetails?.duration || ''),
-      };
-    });
+      if (statsRes.ok) {
+        (statsData.items || []).forEach(v => {
+          statsMap[v.id] = {
+            viewCount: parseInt(v.statistics?.viewCount || 0, 10),
+            likeCount: parseInt(v.statistics?.likeCount || 0, 10),
+            duration:  parseDuration(v.contentDetails?.duration || ''),
+          };
+        });
+      }
+    } catch(statsErr) {
+      console.warn('[Stats] 통계 조회 실패 (무시하고 계속):', statsErr);
+    }
 
-    // 3) Sort candidates by viewCount descending, pick top 3
-    const sorted = candidates
-      .filter(i => statsMap[i.id.videoId])
+    // 3) 조회수 순 정렬 → top 3. 통계 없으면 원래 순서 유지
+    const sorted = [...candidates]
       .sort((a, b) => (statsMap[b.id.videoId]?.viewCount || 0) - (statsMap[a.id.videoId]?.viewCount || 0))
       .slice(0, 3);
-
-    if (sorted.length === 0) throw new Error('유효한 검색 결과가 없습니다. 다른 주제를 시도해보세요.');
 
     renderVideos(sorted, statsMap);
     hideLoading('searchLoading', 'searchProgress', 'searchFill');
     $('videoSection').style.display = 'block';
 
   } catch(err) {
+    console.error('[Search] Error:', err);
     hideLoading('searchLoading', 'searchProgress', 'searchFill');
     showAlert('searchAlertBox', 'error', `검색 오류: ${err.message}`);
     setStep(1);
