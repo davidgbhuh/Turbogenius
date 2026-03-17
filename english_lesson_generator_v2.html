@@ -263,7 +263,7 @@
       <div class="form-group">
         <label>Google Gemini API Key</label>
         <input type="password" id="geminiApiKey" placeholder="AIza..." autocomplete="off" />
-        <div class="hint"><a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>에서 무료 발급</div>
+        <div class="hint">⚠️ 반드시 <a href="https://aistudio.google.com/app/apikey" target="_blank"><strong>AI Studio</strong></a>에서 발급 (Cloud Console 키 사용 불가) · 개인 Gmail 계정 필요</div>
       </div>
       <div class="form-group">
         <label>Gemini 모델</label>
@@ -820,7 +820,18 @@ key_expressions: 6–8 items for ${levelLabel}. vocabulary: 8–10 items.`;
 
   if (!response.ok) {
     const err = await response.json().catch(()=>({}));
-    throw new Error(err?.error?.message || `Gemini API 오류 (${response.status})`);
+    const msg = err?.error?.message || `Gemini API 오류 (${response.status})`;
+    // limit:0 → API key has no free-tier access (Cloud Console key, not AI Studio key)
+    if (msg.includes('limit: 0') || msg.includes('quota') || response.status === 429) {
+      throw new Error(
+        `Gemini 할당량 오류 (limit: 0).\n` +
+        `이 API 키는 무료 티어가 없습니다.\n` +
+        `→ https://aistudio.google.com/app/apikey 에서\n` +
+        `  개인 Google 계정으로 새 키를 발급받으세요.\n` +
+        `  (Google Cloud Console 키 ❌ · AI Studio 키 ✅)`
+      );
+    }
+    throw new Error(msg);
   }
   const data    = await response.json();
   const raw     = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
