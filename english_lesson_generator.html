@@ -962,14 +962,20 @@ async function searchByLink(ytKey) {
     $('refTags').textContent    = refTags.length ? '🏷 ' + refTags.join(' · ') : '';
     $('refVideoBox').style.display = 'block';
 
-    // 2) 검색 키워드 구성 — 제목 핵심어 + 상위 태그
+    // 2) 검색 키워드 구성
+    //    - 태그는 YouTube API가 비공개 처리하는 경우 많으므로 제목 위주로 구성
+    //    - 너무 짧은 쿼리를 막기 위해 제목 전체도 fallback으로 사용
+    const stopWords = /^(this|that|with|from|have|will|your|what|when|where|which|they|them|their|about|english|video|episode|part|full|feat|official|season|series)$/i;
     const titleWords = refTitle.replace(/[^\w\s]/g, ' ').split(/\s+/)
-      .filter(w => w.length > 3 && !/^(this|that|with|from|have|will|your|what|when|where|which|they|them|their|about|english|video)$/i.test(w))
-      .slice(0, 5);
-    const tagWords   = refTags.slice(0, 3);
-    const query      = [...new Set([...titleWords, ...tagWords])].join(' ');
+      .filter(w => w.length > 2 && !stopWords.test(w))
+      .slice(0, 6);
+    const tagWords = (refTags || []).slice(0, 3);
+    const combined = [...new Set([...titleWords, ...tagWords])];
+    // 단어가 2개 미만이면 제목 앞 50자를 그대로 사용
+    const query = combined.length >= 2 ? combined.join(' ') : refTitle.slice(0, 50);
 
     console.log('[Link Search] Reference video:', refTitle);
+    console.log('[Link Search] Tags:', refTags);
     console.log('[Link Search] Search query:', query);
 
     $('searchLoadingText').textContent = `"${refTitle.slice(0,40)}..." 연관 영상 검색 중...`;
@@ -984,22 +990,32 @@ async function searchByLink(ytKey) {
       publishedAfter = d.toISOString();
     }
 
-    // 3) 연관 영상 검색 (기준 영상 제외, 2개만 필요)
+    // 3) 연관 영상 검색 — videoCategoryId 제거 (category + period + query 조합 시 API가 0건 반환하는 버그)
     let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&order=relevance&maxResults=12&relevanceLanguage=en&hl=en&key=${ytKey}`;
-    if (refCatId)       searchUrl += `&videoCategoryId=${refCatId}`;
     if (publishedAfter) searchUrl += `&publishedAfter=${encodeURIComponent(publishedAfter)}`;
 
     const searchRes  = await fetch(searchUrl);
     const searchData = await searchRes.json();
-    console.log('[Link Search] Results:', searchData);
+    console.log('[Link Search] API response:', searchData);
 
     if (!searchRes.ok) throw new Error(searchData?.error?.message || `HTTP ${searchRes.status}`);
 
-    // 기준 영상 제외 후 2개 후보 선택
-    const relatedCandidates = (searchData.items || [])
+    // 기준 영상 제외 후 후보 목록
+    let relatedCandidates = (searchData.items || [])
       .filter(i => i.id?.videoId && i.id.videoId !== videoId);
 
-    if (relatedCandidates.length === 0) throw new Error('연관 영상을 찾을 수 없습니다. 기간 필터를 넓혀보세요.');
+    // 기간 필터로 결과가 0이면 기간 없이 재시도
+    if (relatedCandidates.length === 0 && publishedAfter) {
+      console.warn('[Link Search] No results with publishedAfter, retrying without date filter...');
+      const retryUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&order=relevance&maxResults=12&relevanceLanguage=en&hl=en&key=${ytKey}`;
+      const retryRes  = await fetch(retryUrl);
+      const retryData = await retryRes.json();
+      if (retryRes.ok) {
+        relatedCandidates = (retryData.items || []).filter(i => i.id?.videoId && i.id.videoId !== videoId);
+      }
+    }
+
+    if (relatedCandidates.length === 0) throw new Error('연관 영상을 찾을 수 없습니다. 다른 영상 링크로 시도해보세요.');
 
     // 4) 기준 영상 + 관련 후보 전체 통계 조회
     let statsMap = {};
