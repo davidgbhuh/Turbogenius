@@ -360,8 +360,8 @@
             <label>학습자 수준</label>
             <select id="levelSelect">
               <option value="beginner">Beginner (A1–A2)</option>
-              <option value="intermediate" selected>Intermediate (B1–B2)</option>
-              <option value="advanced">Advanced (C1–C2)</option>
+              <option value="intermediate">Intermediate (B1–B2)</option>
+              <option value="advanced" selected>Advanced (C1–C2)</option>
             </select>
           </div>
           <div class="form-group">
@@ -625,7 +625,10 @@ async function searchAndAdd() {
 
   } catch(err) {
     hideLoading('searchLoading', 'searchProgress', 'searchFill');
-    showAlert('searchAlert', 'error', `검색 오류: ${err.message}`);
+    let msg = `검색 오류: ${err.message}`;
+    if (/quota/i.test(err.message))  msg += '\n\n💡 YouTube API 일일 할당량이 초과되었습니다. 내일 다시 시도하거나 새 API 키를 사용해주세요.';
+    if (/forbidden|403|permission|restricted/i.test(err.message)) msg += '\n\n💡 API 키 제한: Google Cloud Console에서 해당 키의 "YouTube Data API v3" 및 "검색(search)" 권한이 활성화되어 있는지 확인해주세요.';
+    showAlert('searchAlert', 'error', msg.replace(/\n/g, '<br>'));
   }
 }
 
