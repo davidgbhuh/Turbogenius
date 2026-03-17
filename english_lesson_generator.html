@@ -356,11 +356,6 @@
           </div>
         </div>
 
-        <div class="form-group" style="margin-top:14px;">
-          <label>기본 영상 스크립트 직접 입력 (선택 — 자동 추출 대신 사용)</label>
-          <textarea id="manualScript" placeholder="유튜브에서 복사한 스크립트를 여기에 붙여넣기 하세요."></textarea>
-        </div>
-
         <div style="display:flex;gap:12px;margin-top:18px;align-items:center;flex-wrap:wrap;">
           <button class="btn btn-success" onclick="generateLesson()" id="generateBtn">
             ✨ 수업자료 생성
@@ -735,8 +730,6 @@ async function generateLesson() {
   const level     = $('levelSelect').value;
   const date      = $('lessonDate').value;
   const className = $('className').value.trim();
-  const manualScript = $('manualScript').value.trim();
-
   setStepUI(2);
   clearAlert('genAlert');
   showLoading('genLoading', 'genProgress', 'genFill');
@@ -751,7 +744,7 @@ async function generateLesson() {
     const topic = info.title.slice(0, 60);   // ← 각 영상 고유 제목을 topic으로
     $('genLoadingText').textContent = `[${i+1}/${allVideos.length}] "${info.title.slice(0,35)}..." 수업자료 생성 중...`;
     try {
-      const transcript = (i === 0 && manualScript) ? manualScript : await fetchTranscript(info.id);
+      const transcript = await fetchTranscript(info.id);
       const lessonData = await callClaude(claudeKey, info, transcript, level, topic);
       renderLessonSheet(info, lessonData, transcript, level, date, className, topic, i + 1, allVideos.length);
       successCount++;
@@ -971,7 +964,6 @@ function resetAll() {
   $('lessonSheets').innerHTML = '';
   $('ytLinkInput').value = '';
   $('searchQuery').value = '';
-  $('manualScript').value = '';
   $('poolSection').style.display = 'none';
   $('poolGrid').innerHTML = '';
   $('videosSection').style.display = 'none';
