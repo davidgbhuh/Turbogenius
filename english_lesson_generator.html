@@ -562,6 +562,8 @@
       <div class="progress-bar" id="searchProgress" style="display:none;">
         <div class="progress-fill" id="searchFill"></div>
       </div>
+
+      <div id="searchAlertBox"></div>
     </div>
 
     <!-- ─── Section 2: Video Results ──────────────────────────────── -->
@@ -711,14 +713,16 @@ async function searchVideos() {
   }
 
   setStep(2);
+  clearAlert('searchAlertBox');
   showLoading('searchLoading', 'searchProgress', 'searchFill');
   $('videoSection').style.display = 'none';
   selectedVideos.clear();
   videoDataMap = {};
 
   try {
-    // 1) Search API — order=viewCount + publishedAfter, fetch 9 candidates
-    let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoCaption=closedCaption&order=viewCount&maxResults=9&relevanceLanguage=en&hl=en&key=${ytKey}`;
+    // 1) Search API — relevance 정렬로 후보 수집 (viewCount + videoCaption 동시 사용 불가)
+    //    실제 조회수 정렬은 videos.list 통계 기반으로 직접 처리
+    let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&order=relevance&maxResults=9&relevanceLanguage=en&hl=en&key=${ytKey}`;
     if (publishedAfter) searchUrl += `&publishedAfter=${encodeURIComponent(publishedAfter)}`;
 
     const searchRes = await fetch(searchUrl);
@@ -1164,13 +1168,13 @@ function renderLessonSheet(videoInfo, data, transcript, level, date, className, 
 
 /* ── Alert helper ─────────────────────────────────────────────────── */
 function showAlert(containerId, type, msg) {
-  let box = $(containerId);
-  if (!box) {
-    box = document.createElement('div');
-    box.id = containerId;
-    $('videoSection') ? $('videoSection').prepend(box) : document.querySelector('.search-section').append(box);
-  }
-  box.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  const box = $(containerId);
+  if (!box) return;
+  box.innerHTML = `<div class="alert alert-${type}" style="margin-top:14px;">${msg}</div>`;
+}
+function clearAlert(containerId) {
+  const box = $(containerId);
+  if (box) box.innerHTML = '';
 }
 
 /* ── Escape HTML ──────────────────────────────────────────────────── */
