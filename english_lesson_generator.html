@@ -546,8 +546,14 @@ async function searchAndAdd() {
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
 
-    // Exclude reference video
-    const candidates = (data.items||[]).filter(i => i.id?.videoId && i.id.videoId !== refVideo?.id);
+    // Exclude reference video and deduplicate by videoId
+    const seenIds = new Set(refVideo ? [refVideo.id] : []);
+    const candidates = (data.items||[]).filter(i => {
+      if (!i.id?.videoId) return false;
+      if (seenIds.has(i.id.videoId)) return false;
+      seenIds.add(i.id.videoId);
+      return true;
+    });
     if (candidates.length === 0) throw new Error('검색 결과가 없습니다. 다른 검색어나 기간을 시도해보세요.');
 
     // Fetch stats
