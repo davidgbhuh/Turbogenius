@@ -844,11 +844,6 @@ function renderLessonSheet(videoInfo, data, transcript, level, date, className, 
   const discQs = (data.discussion_questions||[]).map((q,i) => `
     <li class="q-disc"><div class="q-num">${i+1}</div><div>${escHtml(q)}</div></li>`).join('');
 
-  const scriptSection = transcript
-    ? `<div class="ls-section"><div class="ls-section-title">📜 Script / Transcript</div>
-       <div class="script-box">${escHtml(transcript.length>1200 ? transcript.slice(0,1200)+'…' : transcript)}</div></div>`
-    : `<div class="ls-section"><div class="ls-section-title">📜 Script / Transcript</div>
-       <div class="alert alert-warning">⚠️ 자막을 자동으로 가져올 수 없습니다. YouTube에서 복사하여 붙여넣기 후 재생성해주세요.</div></div>`;
 
   const sheet = document.createElement('div');
   sheet.className = 'lesson-sheet';
@@ -889,7 +884,6 @@ function renderLessonSheet(videoInfo, data, transcript, level, date, className, 
         <div class="ls-section-title">📖 Vocabulary</div>
         <div class="vocab-grid">${vocabItems}</div>
       </div>
-      ${scriptSection}
       <div class="ls-section">
         <div class="ls-section-title">❓ Comprehension Questions</div>
         <ul class="questions-list">${compQs}</ul>
