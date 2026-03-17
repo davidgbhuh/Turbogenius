@@ -583,7 +583,7 @@
           <div class="form-group full">
             <label>YouTube 링크 붙여넣기</label>
             <input type="url" id="ytLinkInput" placeholder="https://www.youtube.com/watch?v=... 또는 https://youtu.be/..." />
-            <div class="hint">입력한 영상의 제목·태그·카테고리를 분석해 연관 영상 3개를 자동 추천합니다.</div>
+            <div class="hint">입력한 영상이 📌 수업 영상 1번으로 포함되고, 연관 영상 2개를 자동 추천합니다.</div>
           </div>
           <div class="form-group">
             <label>기간 필터</label>
@@ -632,7 +632,7 @@
 
       <div class="btn-row">
         <button class="btn btn-primary" id="searchBtn" onclick="searchVideos()">
-          🔍 YouTube 검색 (3개)
+          🔍 YouTube 검색
         </button>
       </div>
 
@@ -984,7 +984,7 @@ async function searchByLink(ytKey) {
       publishedAfter = d.toISOString();
     }
 
-    // 3) 연관 영상 검색 (기준 영상 자체는 제외)
+    // 3) 연관 영상 검색 (기준 영상 제외, 2개만 필요)
     let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&order=relevance&maxResults=12&relevanceLanguage=en&hl=en&key=${ytKey}`;
     if (refCatId)       searchUrl += `&videoCategoryId=${refCatId}`;
     if (publishedAfter) searchUrl += `&publishedAfter=${encodeURIComponent(publishedAfter)}`;
@@ -995,17 +995,17 @@ async function searchByLink(ytKey) {
 
     if (!searchRes.ok) throw new Error(searchData?.error?.message || `HTTP ${searchRes.status}`);
 
-    // 기준 영상 제외
-    const candidates = (searchData.items || [])
+    // 기준 영상 제외 후 2개 후보 선택
+    const relatedCandidates = (searchData.items || [])
       .filter(i => i.id?.videoId && i.id.videoId !== videoId);
 
-    if (candidates.length === 0) throw new Error('연관 영상을 찾을 수 없습니다. 기간 필터를 넓혀보세요.');
+    if (relatedCandidates.length === 0) throw new Error('연관 영상을 찾을 수 없습니다. 기간 필터를 넓혀보세요.');
 
-    // 4) 통계 조회 및 조회수 정렬
+    // 4) 기준 영상 + 관련 후보 전체 통계 조회
     let statsMap = {};
     try {
-      const ids      = candidates.map(i => i.id.videoId).join(',');
-      const statsRes  = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=${ids}&key=${ytKey}`);
+      const allIds = [videoId, ...relatedCandidates.map(i => i.id.videoId)].join(',');
+      const statsRes  = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=${allIds}&key=${ytKey}`);
       const statsData = await statsRes.json();
       if (statsRes.ok) {
         (statsData.items || []).forEach(v => {
@@ -1018,14 +1018,22 @@ async function searchByLink(ytKey) {
       }
     } catch(e) { console.warn('[Link Search] Stats error (ignored):', e); }
 
-    const sorted = [...candidates]
+    // 관련 영상 조회수 순 정렬 → 상위 2개
+    const top2Related = [...relatedCandidates]
       .sort((a, b) => (statsMap[b.id.videoId]?.viewCount || 0) - (statsMap[a.id.videoId]?.viewCount || 0))
-      .slice(0, 3);
+      .slice(0, 2);
+
+    // 기준 영상을 search result 형식으로 변환 후 맨 앞에 배치
+    const refAsItem = {
+      id: { videoId },
+      snippet: refSnip,
+    };
+    const finalItems = [refAsItem, ...top2Related];
 
     // topic 입력란에 기준 영상 제목을 자동 채워넣기 (수업자료 생성에 활용)
     $('topicInput').value = refTitle.slice(0, 60);
 
-    renderVideos(sorted, statsMap);
+    renderVideos(finalItems, statsMap, videoId);
     hideLoading('searchLoading', 'searchProgress', 'searchFill');
     $('videoSection').style.display = 'block';
 
@@ -1037,13 +1045,14 @@ async function searchByLink(ytKey) {
   }
 }
 
-function renderVideos(items, statsMap) {
+function renderVideos(items, statsMap, refVideoId = null) {
   const grid = $('videosGrid');
   grid.innerHTML = '';
 
   // Max view count for relative bar
   const maxViews = Math.max(...items.map(i => statsMap[i.id.videoId]?.viewCount || 0), 1);
 
+  let relatedIdx = 0;
   items.forEach((item, idx) => {
     const vid   = item.id.videoId;
     const snip  = item.snippet;
@@ -1056,15 +1065,29 @@ function renderVideos(items, statsMap) {
     const views  = stats.viewCount || 0;
     const dur    = stats.duration  || '';
     const pct    = Math.round((views / maxViews) * 100);
+    const isRef  = vid === refVideoId;
 
     videoDataMap[vid] = { title, channel: chan, thumb, url: `https://www.youtube.com/watch?v=${vid}`, description: desc, publishedAt: date, viewCount: views };
 
+    // 배지: 기준 영상 vs 관련 영상 vs 주제 검색
+    let badge;
+    if (isRef) {
+      badge = `<span class="video-badge" style="background:#0ea5e9;">📌 내 영상</span>`;
+    } else if (refVideoId) {
+      relatedIdx++;
+      badge = `<span class="video-badge" style="background:var(--success);">🔗 연관 ${relatedIdx}위</span>`;
+    } else {
+      badge = `<span class="video-badge">🏆 인기순 ${idx+1}위</span>`;
+    }
+
     const card = document.createElement('div');
     card.className = 'video-card';
+    if (isRef) card.classList.add('ref-video');
     card.dataset.vid = vid;
     card.innerHTML = `
       <div style="position:relative;">
         <img class="video-thumb" src="${thumb}" alt="${escHtml(title)}" loading="lazy" />
+        ${isRef ? `<div style="position:absolute;top:0;left:0;right:0;background:rgba(14,165,233,.85);color:white;font-size:.72rem;font-weight:700;padding:4px 8px;text-align:center;">📌 내가 선택한 영상</div>` : ''}
         ${dur ? `<span style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.75);color:#fff;font-size:.72rem;font-weight:600;padding:2px 6px;border-radius:4px;">${dur}</span>` : ''}
       </div>
       <div class="video-info">
@@ -1075,15 +1098,19 @@ function renderVideos(items, statsMap) {
           ${stats.likeCount ? `<span>👍 ${fmtViews(stats.likeCount)}</span>` : ''}
         </div>
         <div class="view-count-bar"><div class="view-count-fill" style="width:${pct}%"></div></div>
-        <div style="margin-top:8px;"><span class="video-badge">🏆 인기순 ${idx+1}위</span></div>
+        <div style="margin-top:8px;">${badge}</div>
       </div>`;
     card.addEventListener('click', () => toggleVideo(vid, card));
     grid.appendChild(card);
   });
 
-  // Auto-select first card
-  const first = grid.querySelector('.video-card');
-  if (first) first.click();
+  // Auto-select all cards in link mode, first only in topic mode
+  if (refVideoId) {
+    grid.querySelectorAll('.video-card').forEach(c => c.click());
+  } else {
+    const first = grid.querySelector('.video-card');
+    if (first) first.click();
+  }
 }
 
 function toggleVideo(vid, card) {
