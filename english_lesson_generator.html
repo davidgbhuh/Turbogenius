@@ -106,7 +106,7 @@
 
     /* ─── 3-video grid ───────────────────────────────────────── */
     .three-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0;
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin: 20px 0;
     }
     .video-slot {
       border-radius: var(--radius); overflow: hidden; background: white;
@@ -316,7 +316,7 @@
       <!-- Pool of search results (for swapping) -->
       <div id="poolSection" style="display:none;margin-top:16px;">
         <div style="font-size:.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">
-          검색 결과 — 클릭하면 슬롯 2 또는 슬롯 3으로 교체
+          검색 결과 — 클릭하면 추가 영상으로 교체
         </div>
         <div class="pool-grid" id="poolGrid"></div>
       </div>
@@ -331,8 +331,7 @@
       </div>
       <div class="three-grid">
         <div id="slot0" class="video-slot slot-empty"><span style="font-size:1.5rem;">📌</span><span>기본 영상</span></div>
-        <div id="slot1" class="video-slot slot-empty"><span style="font-size:1.5rem;">🔍</span><span>추가 영상 1</span></div>
-        <div id="slot2" class="video-slot slot-empty"><span style="font-size:1.5rem;">🔍</span><span>추가 영상 2</span></div>
+        <div id="slot1" class="video-slot slot-empty"><span style="font-size:1.5rem;">🔍</span><span>추가 영상</span></div>
       </div>
 
       <!-- Settings -->
@@ -452,7 +451,7 @@ function extractVideoId(url) {
 
 /* ── State ────────────────────────────────────────────────────────── */
 let refVideo    = null;           // { id, title, channel, thumb, url, description, publishedAt, viewCount, duration }
-let slotVideos  = [null, null];   // additional videos for slot 1 & 2
+let slotVideos  = [null];         // additional video for slot 1
 let searchPool  = [];             // all search results for swapping
 let swapTarget  = null;           // which slot is being swapped (1 or 2)
 
@@ -587,9 +586,8 @@ async function searchAndAdd() {
     });
 
     // Auto-fill slots 1 & 2 with top 2
-    slotVideos = [searchPool[0]||null, searchPool[1]||null];
+    slotVideos = [searchPool[0]||null];
     renderSlot(1, slotVideos[0], 'add');
-    renderSlot(2, slotVideos[1], 'add');
 
     // Render swap pool (remaining results)
     renderPool(searchPool);
@@ -614,11 +612,11 @@ function renderSlot(slotIdx, video, type) {
   const el = $(`slot${slotIdx}`);
   if (!video) {
     el.className = 'video-slot slot-empty';
-    el.innerHTML = `<span style="font-size:1.4rem;">${slotIdx===0?'📌':'🔍'}</span><span>${slotIdx===0?'기본 영상':'추가 영상 '+slotIdx}</span>`;
+    el.innerHTML = `<span style="font-size:1.4rem;">${slotIdx===0?'📌':'🔍'}</span><span>${slotIdx===0?'기본 영상':'추가 영상'}</span>`;
     return;
   }
 
-  const labelText = slotIdx===0 ? '📌 기본 영상 (고정)' : `🔍 추가 영상 ${slotIdx}`;
+  const labelText = slotIdx===0 ? '📌 기본 영상 (고정)' : '🔍 추가 영상';
   const badgeClass = type === 'ref' ? 'ref' : 'add';
 
   el.className = `video-slot slot-${type}`;
@@ -666,11 +664,11 @@ function startSwap(slotIdx) {
   $('poolSection').style.display = 'block';
   $('poolSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   const label = $('poolSection').querySelector('div');
-  if (label) label.textContent = `슬롯 ${slotIdx} 교체 중 — 아래에서 영상을 선택하세요 (취소: 다시 클릭)`;
+  if (label) label.textContent = '추가 영상 교체 중 — 아래에서 영상을 선택하세요 (취소: 다시 클릭)';
 }
 
 function doSwap(poolIdx) {
-  const target = swapTarget ?? (slotVideos[0] === null ? 1 : slotVideos[1] === null ? 2 : 1);
+  const target = swapTarget ?? 1;
   const slotIdx = target - 1;
   slotVideos[slotIdx] = searchPool[poolIdx];
   renderSlot(target, slotVideos[slotIdx], 'add');
@@ -959,7 +957,7 @@ ${sheetsHTML}
 
 /* ── Reset ────────────────────────────────────────────────────────── */
 function resetAll() {
-  refVideo = null; slotVideos = [null, null]; searchPool = []; swapTarget = null;
+  refVideo = null; slotVideos = [null]; searchPool = []; swapTarget = null;
   $('lessonOutput').classList.remove('show');
   $('lessonSheets').innerHTML = '';
   $('ytLinkInput').value = '';
