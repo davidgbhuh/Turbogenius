@@ -483,8 +483,8 @@ let swapTarget  = null;           // which slot is being swapped (1 or 2)
 window.addEventListener('DOMContentLoaded', () => {
   $('lessonDate').value = new Date().toISOString().split('T')[0];
   ['ytApiKey','geminiApiKey'].forEach(id => {
-    const v = sessionStorage.getItem(id); if (v) $(id).value = v;
-    $(id).addEventListener('input', () => sessionStorage.setItem(id, $(id).value));
+    const v = localStorage.getItem(id); if (v) $(id).value = v;
+    $(id).addEventListener('input', () => localStorage.setItem(id, $(id).value));
   });
   setStepUI(1);
 });
