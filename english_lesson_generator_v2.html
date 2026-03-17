@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>English Lesson Generator · for Teachers</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Variables ─────────────────────────────────────────── */
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #818cf8;
+      --primary-dark: #3730a3;
+      --accent: #f59e0b;
+      --success: #10b981;
+      --sky: #0ea5e9;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 8px 24px rgba(0,0,0,.05);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+
+    /* ─── Header ─────────────────────────────────────────────── */
+    .app-header {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 60%, var(--primary-light) 100%);
+      color: white; padding: 28px 40px 32px; position: relative; overflow: hidden;
+    }
+    .app-header::after { content: '📚'; position: absolute; right: 60px; top: 50%; transform: translateY(-50%); font-size: 80px; opacity: .15; }
+    .app-header h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: -.5px; }
+    .app-header p  { font-size: .95rem; opacity: .85; margin-top: 4px; }
+
+    .container { max-width: 1060px; margin: 0 auto; padding: 32px 20px; }
+
+    /* ─── Card ───────────────────────────────────────────────── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 26px; margin-bottom: 20px; }
+    .card-title { font-size: 1rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+
+    /* ─── Flow steps ─────────────────────────────────────────── */
+    .flow-step { margin-bottom: 28px; }
+    .step-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+    .step-badge {
+      width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: white;
+      font-size: .82rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .step-badge.done { background: var(--success); }
+    .step-title { font-size: .95rem; font-weight: 700; color: var(--text); }
+    .step-desc  { font-size: .8rem; color: var(--text-muted); margin-top: 2px; }
+    .step-divider { border: none; border-top: 1.5px dashed var(--border); margin: 24px 0; }
+
+    /* ─── Form ───────────────────────────────────────────────── */
+    .form-row { display: flex; gap: 8px; align-items: stretch; }
+    .form-row input, .form-row select { flex: 1; min-width: 0; }
+    .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    label { font-size: .78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+    input, select, textarea {
+      border: 1.5px solid var(--border); border-radius: 8px; padding: 9px 13px;
+      font-size: .92rem; font-family: inherit; color: var(--text); background: var(--bg);
+      outline: none; transition: border-color .18s, box-shadow .18s; width: 100%;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    .hint { font-size: .77rem; color: var(--text-muted); margin-top: 4px; }
+
+    /* ─── Buttons ─────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px; padding: 10px 20px;
+      border-radius: 8px; font-size: .9rem; font-weight: 600; cursor: pointer;
+      border: none; transition: all .18s; white-space: nowrap; text-decoration: none;
+    }
+    .btn-primary  { background: var(--primary); color: white; }
+    .btn-primary:hover  { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79,70,229,.28); }
+    .btn-success  { background: var(--success); color: white; }
+    .btn-success:hover  { background: #059669; transform: translateY(-1px); }
+    .btn-accent   { background: var(--accent); color: white; }
+    .btn-accent:hover   { background: #d97706; transform: translateY(-1px); }
+    .btn-outline  { background: transparent; color: var(--primary); border: 2px solid var(--primary); }
+    .btn-outline:hover  { background: var(--primary); color: white; }
+    .btn-sky      { background: var(--sky); color: white; }
+    .btn-sky:hover      { background: #0284c7; transform: translateY(-1px); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none !important; }
+
+    /* ─── Loading ─────────────────────────────────────────────── */
+    .loading { display: none; align-items: center; gap: 10px; color: var(--primary); font-size: .88rem; font-weight: 500; margin-top: 12px; }
+    .loading.show { display: flex; }
+    .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(99,102,241,.2); border-top-color: var(--primary); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 10px; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-light)); width: 0%; transition: width .4s ease; }
+
+    /* ─── Alert ──────────────────────────────────────────────── */
+    .alert { border-radius: 8px; padding: 12px 16px; font-size: .86rem; margin-top: 12px; }
+    .alert-info    { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+    .alert-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+    .alert-warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+    .alert-error   { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+
+    /* ─── 3-video grid ───────────────────────────────────────── */
+    .three-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0;
+    }
+    .video-slot {
+      border-radius: var(--radius); overflow: hidden; background: white;
+      border: 2px solid var(--border); transition: box-shadow .2s;
+    }
+    .video-slot.slot-ref  { border-color: var(--sky); }
+    .video-slot.slot-add  { border-color: var(--success); }
+    .video-slot.slot-empty {
+      border: 2px dashed var(--border); min-height: 180px; display: flex;
+      align-items: center; justify-content: center; color: var(--text-muted);
+      font-size: .85rem; flex-direction: column; gap: 8px; background: var(--bg);
+    }
+    .slot-badge {
+      font-size: .72rem; font-weight: 700; padding: 4px 10px; text-align: center;
+      letter-spacing: .3px;
+    }
+    .slot-badge.ref { background: var(--sky); color: white; }
+    .slot-badge.add { background: var(--success); color: white; }
+    .slot-thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; position: relative; }
+    .slot-thumb-wrap { position: relative; }
+    .slot-dur {
+      position: absolute; bottom: 6px; right: 8px;
+      background: rgba(0,0,0,.75); color: white; font-size: .7rem; font-weight: 600;
+      padding: 2px 5px; border-radius: 4px;
+    }
+    .slot-info { padding: 12px 14px; }
+    .slot-title { font-size: .86rem; font-weight: 600; line-height: 1.4; }
+    .slot-meta  { font-size: .75rem; color: var(--text-muted); margin-top: 5px; }
+    .slot-views { font-size: .75rem; color: var(--text-muted); margin-top: 4px; }
+    .slot-replace {
+      width: 100%; padding: 7px; font-size: .78rem; font-weight: 600; color: var(--success);
+      background: #f0fdf4; border: none; border-top: 1px solid #86efac; cursor: pointer;
+      transition: background .15s;
+    }
+    .slot-replace:hover { background: #dcfce7; }
+
+    /* ─── Search result pool (for swapping) ──────────────────── */
+    .pool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-top: 12px; }
+    .pool-card {
+      border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; cursor: pointer;
+      transition: border-color .18s, box-shadow .18s; background: white; font-size: .82rem;
+    }
+    .pool-card:hover { border-color: var(--success); box-shadow: 0 3px 10px rgba(16,185,129,.15); }
+    .pool-card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
+    .pool-card-info { padding: 8px 10px; }
+    .pool-card-title { font-weight: 600; font-size: .8rem; line-height: 1.35; }
+    .pool-card-meta  { font-size: .72rem; color: var(--text-muted); margin-top: 3px; }
+
+    /* ─── Step indicators ────────────────────────────────────── */
+    .steps { display: flex; align-items: center; margin-bottom: 28px; }
+    .step-ind { display: flex; align-items: center; gap: 8px; font-size: .82rem; font-weight: 600; color: var(--text-muted); }
+    .step-ind .sn { width: 26px; height: 26px; border-radius: 50%; background: var(--border); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; }
+    .step-ind.active .sn { background: var(--primary); color: white; }
+    .step-ind.active { color: var(--primary-dark); }
+    .step-ind.done .sn { background: var(--success); color: white; }
+    .step-line { flex: 1; height: 2px; background: var(--border); margin: 0 8px; }
+
+    /* ─── Lesson sheet styles ────────────────────────────────── */
+    #lessonOutput { display: none; }
+    #lessonOutput.show { display: block; }
+
+    .lesson-sheet { background: white; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 24px; overflow: hidden; }
+    .ls-header { background: var(--primary-dark); color: white; padding: 24px 36px; }
+    .ls-header .ls-label { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: .7; margin-bottom: 4px; }
+    .ls-header h2 { font-size: 1.4rem; font-weight: 800; letter-spacing: -.3px; }
+    .ls-meta { display: flex; gap: 20px; margin-top: 10px; font-size: .82rem; opacity: .85; flex-wrap: wrap; }
+    .ls-video-ref { display: flex; align-items: center; gap: 16px; padding: 16px 36px; background: #f8fafc; border-bottom: 1px solid var(--border); }
+    .ls-video-ref img { width: 100px; border-radius: 6px; flex-shrink: 0; }
+    .ls-video-ref .ref-title { font-size: .92rem; font-weight: 600; }
+    .ls-video-ref .ref-channel { font-size: .8rem; color: var(--text-muted); margin-top: 2px; }
+    .ls-video-ref a { font-size: .8rem; color: var(--primary); text-decoration: none; font-weight: 500; }
+    .ls-body { padding: 32px 36px; }
+    .ls-section { margin-bottom: 36px; }
+    .ls-section-title { font-size: .82rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 6px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .ls-summary { background: #fafbff; border-left: 4px solid var(--primary); border-radius: 0 8px 8px 0; padding: 14px 18px; font-size: .9rem; line-height: 1.7; }
+    .ls-summary-ko { margin-top: 8px; font-size: .85rem; color: var(--text-muted); }
+    .expr-table { width: 100%; border-collapse: collapse; }
+    .expr-table th { background: var(--primary); color: white; padding: 9px 14px; font-size: .78rem; text-align: left; font-weight: 600; }
+    .expr-table td { padding: 11px 14px; font-size: .87rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .expr-table tr:nth-child(even) td { background: #fafbff; }
+    .expr-phrase { font-weight: 700; color: var(--primary-dark); }
+    .expr-ko { font-size: .78rem; color: var(--text-muted); margin-top: 3px; }
+    .expr-example { font-style: italic; color: var(--text-muted); font-size: .83rem; margin-top: 4px; }
+    .expr-example::before { content: '예) '; font-weight: 600; font-style: normal; }
+    .vocab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+    .vocab-item { border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 14px; background: #fafbff; }
+    .vocab-word { font-weight: 700; color: var(--primary-dark); font-size: .9rem; }
+    .vocab-pos  { font-size: .72rem; color: var(--accent); font-weight: 600; text-transform: uppercase; }
+    .vocab-def  { font-size: .82rem; color: var(--text-muted); margin-top: 3px; }
+    .script-box { background: #fafafa; border: 1.5px solid var(--border); border-radius: 8px; padding: 20px 24px; font-size: .88rem; line-height: 1.9; max-height: 360px; overflow-y: auto; white-space: pre-wrap; font-family: 'Inter', sans-serif; }
+    .questions-list { list-style: none; }
+    .questions-list li { display: flex; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: .9rem; align-items: flex-start; }
+    .questions-list li:last-child { border-bottom: none; }
+    .q-num { width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 700; flex-shrink: 0; }
+    .q-disc .q-num { background: var(--accent); }
+    .q-answer-line { height: 24px; border-bottom: 1px solid #ccc; margin-top: 4px; }
+
+    /* ─── Export bar ─────────────────────────────────────────── */
+    .export-bar { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+
+    /* ─── Print ──────────────────────────────────────────────── */
+    @media print {
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { background: white; }
+      .app-header, .container > .card, .no-print, .export-bar, .steps { display: none !important; }
+      #lessonOutput { display: block !important; }
+      .lesson-sheet { box-shadow: none; border: none; page-break-after: always; margin-bottom: 0; }
+      .ls-header { background: var(--primary-dark) !important; color: white !important; padding: 18px 24px; }
+      .ls-video-ref { padding: 10px 24px; }
+      .ls-video-ref img { display: none; }
+      .ls-body { padding: 18px 24px; }
+      .ls-section { margin-bottom: 20px; break-inside: avoid; }
+      .script-box { max-height: none; font-size: 9.5pt; overflow: visible; }
+      .vocab-grid { grid-template-columns: repeat(3, 1fr); }
+      .expr-table th { background: var(--primary) !important; }
+      .expr-table tr:nth-child(even) td { background: #f0f4ff !important; }
+      @page { margin: 15mm 18mm; size: A4 portrait; }
+    }
+
+    @media (max-width: 700px) {
+      .three-grid { grid-template-columns: 1fr; }
+      .form-grid  { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="app-header">
+  <h1>English Lesson Generator</h1>
+  <p>유튜브 링크 + 키워드 검색 → 영상 3개 → Key Expressions · Script → PDF 수업자료</p>
+</header>
+
+<div class="container">
+
+  <!-- Step indicators -->
+  <div class="steps no-print">
+    <div class="step-ind" id="si1"><div class="sn">1</div><span>영상 선택</span></div>
+    <div class="step-line"></div>
+    <div class="step-ind" id="si2"><div class="sn">2</div><span>수업자료 생성</span></div>
+    <div class="step-line"></div>
+    <div class="step-ind" id="si3"><div class="sn">3</div><span>PDF 출력</span></div>
+  </div>
+
+  <!-- ── API Keys ──────────────────────────────────────────── -->
+  <div class="card">
+    <div class="card-title">🔑 API 키 설정</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="form-group">
+        <label>YouTube Data API v3 Key</label>
+        <input type="password" id="ytApiKey" placeholder="AIza..." autocomplete="off" />
+        <div class="hint"><a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank">Google Cloud Console</a>에서 무료 발급</div>
+      </div>
+      <div class="form-group">
+        <label>Anthropic Claude API Key</label>
+        <input type="password" id="claudeApiKey" placeholder="sk-ant-..." autocomplete="off" />
+        <div class="hint"><a href="https://console.anthropic.com/keys" target="_blank">console.anthropic.com</a>에서 발급</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Main flow card ────────────────────────────────────── -->
+  <div class="card">
+
+    <!-- Step 1: YouTube link -->
+    <div class="flow-step">
+      <div class="step-header">
+        <div class="step-badge" id="badge1">1</div>
+        <div>
+          <div class="step-title">기본 영상 — 유튜브 링크 입력</div>
+          <div class="step-desc">수업의 메인 영상입니다. 항상 포함됩니다.</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <input type="url" id="ytLinkInput" placeholder="https://www.youtube.com/watch?v=...  또는  https://youtu.be/..." />
+        <button class="btn btn-sky" onclick="analyzeLink()">🔎 영상 분석</button>
+      </div>
+      <div class="loading" id="analyzeLoading"><div class="spinner"></div><span>영상 정보를 불러오는 중...</span></div>
+      <div class="progress-bar" id="analyzeProgress" style="display:none;"><div class="progress-fill" id="analyzeFill"></div></div>
+      <div id="analyzeAlert"></div>
+    </div>
+
+    <hr class="step-divider" />
+
+    <!-- Step 2: Keyword search -->
+    <div class="flow-step" id="step2Section">
+      <div class="step-header">
+        <div class="step-badge" id="badge2">2</div>
+        <div>
+          <div class="step-title">추가 영상 검색 — 수업 주제 키워드</div>
+          <div class="step-desc">조회수 높은 영상 2개를 자동으로 선택합니다. 마음에 안 들면 결과에서 교체할 수 있습니다.</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <input type="text" id="searchQuery" placeholder="예: climate change, AI in daily life, healthy habits..." />
+        <select id="searchPeriod" style="width:140px;flex:none;">
+          <option value="1y" selected>최근 1년</option>
+          <option value="2y">최근 2년</option>
+          <option value="all">전체</option>
+        </select>
+        <button class="btn btn-primary" onclick="searchAndAdd()">🔍 검색</button>
+      </div>
+      <div class="loading" id="searchLoading"><div class="spinner"></div><span>검색 중...</span></div>
+      <div class="progress-bar" id="searchProgress" style="display:none;"><div class="progress-fill" id="searchFill"></div></div>
+      <div id="searchAlert"></div>
+
+      <!-- Pool of search results (for swapping) -->
+      <div id="poolSection" style="display:none;margin-top:16px;">
+        <div style="font-size:.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">
+          검색 결과 — 클릭하면 슬롯 2 또는 슬롯 3으로 교체
+        </div>
+        <div class="pool-grid" id="poolGrid"></div>
+      </div>
+    </div>
+
+    <hr class="step-divider" />
+
+    <!-- 3-video grid -->
+    <div id="videosSection" style="display:none;">
+      <div style="font-size:.88rem;font-weight:700;color:var(--text);margin-bottom:14px;">
+        📋 수업 영상 구성 <span id="videoCount" style="font-size:.8rem;font-weight:400;color:var(--text-muted);"></span>
+      </div>
+      <div class="three-grid">
+        <div id="slot0" class="video-slot slot-empty"><span style="font-size:1.5rem;">📌</span><span>기본 영상</span></div>
+        <div id="slot1" class="video-slot slot-empty"><span style="font-size:1.5rem;">🔍</span><span>추가 영상 1</span></div>
+        <div id="slot2" class="video-slot slot-empty"><span style="font-size:1.5rem;">🔍</span><span>추가 영상 2</span></div>
+      </div>
+
+      <!-- Settings -->
+      <div style="margin-top:22px;padding-top:20px;border-top:1px solid var(--border);">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>학습자 수준</label>
+            <select id="levelSelect">
+              <option value="beginner">Beginner (A1–A2)</option>
+              <option value="intermediate" selected>Intermediate (B1–B2)</option>
+              <option value="advanced">Advanced (C1–C2)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>수업 날짜</label>
+            <input type="date" id="lessonDate" />
+          </div>
+          <div class="form-group">
+            <label>학급명</label>
+            <input type="text" id="className" placeholder="예: Advanced Class B" />
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:14px;">
+          <label>기본 영상 스크립트 직접 입력 (선택 — 자동 추출 대신 사용)</label>
+          <textarea id="manualScript" placeholder="유튜브에서 복사한 스크립트를 여기에 붙여넣기 하세요."></textarea>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-top:18px;align-items:center;flex-wrap:wrap;">
+          <button class="btn btn-success" onclick="generateLesson()" id="generateBtn">
+            ✨ 수업자료 생성
+          </button>
+          <span id="generateInfo" style="font-size:.82rem;color:var(--text-muted);"></span>
+        </div>
+        <div class="loading" id="genLoading"><div class="spinner"></div><span id="genLoadingText">수업자료를 생성 중입니다...</span></div>
+        <div class="progress-bar" id="genProgress" style="display:none;"><div class="progress-fill" id="genFill"></div></div>
+        <div id="genAlert"></div>
+      </div>
+    </div>
+
+  </div><!-- /card -->
+
+  <!-- ── Lesson output ──────────────────────────────────────── -->
+  <div id="lessonOutput">
+    <div class="export-bar no-print">
+      <button class="btn btn-accent" onclick="window.print()">🖨️ PDF 출력 / 인쇄</button>
+      <button class="btn btn-success" onclick="saveAsHTML()">💾 HTML로 저장</button>
+      <button class="btn btn-outline" onclick="resetAll()">↩️ 새 수업 만들기</button>
+      <span style="font-size:.8rem;color:var(--text-muted);">인쇄 → "PDF로 저장" 선택</span>
+    </div>
+    <div id="lessonSheets"></div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+/* ── Helpers ──────────────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+
+function setStepUI(n) {
+  [1,2,3].forEach(i => {
+    const el = $(`si${i}`);
+    el.classList.remove('active','done');
+    if (i < n)  el.classList.add('done');
+    if (i === n) el.classList.add('active');
+  });
+}
+
+function showLoading(lid, pid, fid) {
+  $(lid).classList.add('show');
+  if (pid) { $(pid).style.display = 'block'; animateProgress(fid, 80, 2400); }
+}
+function hideLoading(lid, pid, fid) {
+  $(lid).classList.remove('show');
+  if (pid) { animateFill(fid, 100, 300, () => { $(pid).style.display = 'none'; $(fid).style.width = '0%'; }); }
+}
+function animateProgress(fid, pct, dur) {
+  const fill = $(fid), start = performance.now();
+  (function step(now) {
+    const t = Math.min((now - start)/dur, 1);
+    fill.style.width = (1-Math.pow(1-t,3))*pct + '%';
+    if (t < 1) requestAnimationFrame(step);
+  })(performance.now());
+}
+function animateFill(fid, to, dur, cb) {
+  const fill = $(fid), from = parseFloat(fill.style.width)||0, start = performance.now();
+  (function step(now) {
+    const t = Math.min((now - start)/dur, 1);
+    fill.style.width = (from + (to-from)*t) + '%';
+    if (t < 1) requestAnimationFrame(step); else if (cb) cb();
+  })(performance.now());
+}
+
+function showAlert(id, type, msg) {
+  const b = $(id); if (b) b.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+}
+function clearAlert(id) { const b = $(id); if (b) b.innerHTML = ''; }
+
+function escHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function parseDuration(iso) {
+  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!m) return '';
+  const h=parseInt(m[1]||0), min=parseInt(m[2]||0), s=parseInt(m[3]||0);
+  return h > 0 ? `${h}:${String(min).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${min}:${String(s).padStart(2,'0')}`;
+}
+
+function fmtViews(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+  if (n >= 1e3) return Math.round(n/1e3)+'K';
+  return String(n||0);
+}
+
+function extractVideoId(url) {
+  const patterns = [/[?&]v=([a-zA-Z0-9_-]{11})/, /youtu\.be\/([a-zA-Z0-9_-]{11})/, /embed\/([a-zA-Z0-9_-]{11})/, /shorts\/([a-zA-Z0-9_-]{11})/];
+  for (const re of patterns) { const m = (url||'').match(re); if (m) return m[1]; }
+  return null;
+}
+
+/* ── State ────────────────────────────────────────────────────────── */
+let refVideo    = null;           // { id, title, channel, thumb, url, description, publishedAt, viewCount, duration }
+let slotVideos  = [null, null];   // additional videos for slot 1 & 2
+let searchPool  = [];             // all search results for swapping
+let swapTarget  = null;           // which slot is being swapped (1 or 2)
+
+/* ── Init ─────────────────────────────────────────────────────────── */
+window.addEventListener('DOMContentLoaded', () => {
+  $('lessonDate').value = new Date().toISOString().split('T')[0];
+  ['ytApiKey','claudeApiKey'].forEach(id => {
+    const v = sessionStorage.getItem(id); if (v) $(id).value = v;
+    $(id).addEventListener('input', () => sessionStorage.setItem(id, $(id).value));
+  });
+  setStepUI(1);
+});
+
+/* ── Step 1: Analyze YouTube link ─────────────────────────────────── */
+async function analyzeLink() {
+  const ytKey  = $('ytApiKey').value.trim();
+  const rawUrl = $('ytLinkInput').value.trim();
+  if (!ytKey)  return alert('YouTube API Key를 입력해주세요.');
+  if (!rawUrl) return alert('YouTube 링크를 입력해주세요.');
+
+  const vid = extractVideoId(rawUrl);
+  if (!vid) return alert('유효한 YouTube 링크가 아닙니다.\n예) https://www.youtube.com/watch?v=XXXXXXXXXXX');
+
+  clearAlert('analyzeAlert');
+  showLoading('analyzeLoading', 'analyzeProgress', 'analyzeFill');
+
+  try {
+    const item  = await fetchVideoMeta(vid, ytKey);
+    const snip  = item.snippet || {};
+    const stats = item.statistics || {};
+    const cd    = item.contentDetails || {};
+
+    refVideo = {
+      id:          vid,
+      title:       snip.title || '',
+      channel:     snip.channelTitle || '',
+      thumb:       snip.thumbnails?.medium?.url || snip.thumbnails?.default?.url || '',
+      url:         `https://www.youtube.com/watch?v=${vid}`,
+      description: snip.description || '',
+      publishedAt: (snip.publishedAt||'').substring(0,10),
+      viewCount:   parseInt(stats.viewCount||0, 10),
+      duration:    parseDuration(cd.duration||''),
+    };
+
+    hideLoading('analyzeLoading', 'analyzeProgress', 'analyzeFill');
+    renderSlot(0, refVideo, 'ref');
+
+    // Auto-fill search query from video title
+    $('searchQuery').value = refVideo.title.slice(0, 60);
+    $('badge1').classList.add('done');
+    $('videosSection').style.display = 'block';
+    updateGenerateInfo();
+    setStepUI(1);
+
+  } catch(err) {
+    hideLoading('analyzeLoading', 'analyzeProgress', 'analyzeFill');
+    showAlert('analyzeAlert', 'error', `영상 분석 오류: ${err.message}`);
+  }
+}
+
+/* ── Step 2: Search + auto-fill slots ────────────────────────────── */
+async function searchAndAdd() {
+  const ytKey  = $('ytApiKey').value.trim();
+  const query  = $('searchQuery').value.trim();
+  const period = $('searchPeriod').value;
+  if (!ytKey)  return alert('YouTube API Key를 입력해주세요.');
+  if (!query)  return alert('검색어를 입력해주세요.');
+
+  clearAlert('searchAlert');
+  $('poolSection').style.display = 'none';
+  showLoading('searchLoading', 'searchProgress', 'searchFill');
+
+  try {
+    let publishedAfter = '';
+    if (period !== 'all') {
+      const d = new Date();
+      if (period === '1y') d.setFullYear(d.getFullYear()-1);
+      if (period === '2y') d.setFullYear(d.getFullYear()-2);
+      publishedAfter = d.toISOString();
+    }
+
+    let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&order=relevance&maxResults=9&relevanceLanguage=en&hl=en&key=${ytKey}`;
+    if (publishedAfter) url += `&publishedAfter=${encodeURIComponent(publishedAfter)}`;
+
+    const res  = await fetch(url);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
+
+    // Exclude reference video
+    const candidates = (data.items||[]).filter(i => i.id?.videoId && i.id.videoId !== refVideo?.id);
+    if (candidates.length === 0) throw new Error('검색 결과가 없습니다. 다른 검색어나 기간을 시도해보세요.');
+
+    // Fetch stats
+    let statsMap = {};
+    try {
+      const ids = candidates.map(i=>i.id.videoId).join(',');
+      const sr  = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=${ids}&key=${ytKey}`);
+      const sd  = await sr.json();
+      if (sr.ok) (sd.items||[]).forEach(v => {
+        statsMap[v.id] = {
+          viewCount: parseInt(v.statistics?.viewCount||0, 10),
+          likeCount: parseInt(v.statistics?.likeCount||0, 10),
+          duration:  parseDuration(v.contentDetails?.duration||''),
+        };
+      });
+    } catch(e) {}
+
+    // Sort by views, build pool
+    const sorted = [...candidates].sort((a,b) => (statsMap[b.id.videoId]?.viewCount||0) - (statsMap[a.id.videoId]?.viewCount||0));
+
+    searchPool = sorted.map(item => {
+      const vid  = item.id.videoId;
+      const snip = item.snippet;
+      const s    = statsMap[vid] || {};
+      return {
+        id:          vid,
+        title:       snip.title || '',
+        channel:     snip.channelTitle || '',
+        thumb:       snip.thumbnails?.medium?.url || snip.thumbnails?.default?.url || '',
+        url:         `https://www.youtube.com/watch?v=${vid}`,
+        description: snip.description || '',
+        publishedAt: (snip.publishedAt||'').substring(0,10),
+        viewCount:   s.viewCount || 0,
+        duration:    s.duration  || '',
+      };
+    });
+
+    // Auto-fill slots 1 & 2 with top 2
+    slotVideos = [searchPool[0]||null, searchPool[1]||null];
+    renderSlot(1, slotVideos[0], 'add');
+    renderSlot(2, slotVideos[1], 'add');
+
+    // Render swap pool (remaining results)
+    renderPool(searchPool);
+
+    hideLoading('searchLoading', 'searchProgress', 'searchFill');
+    $('badge2').classList.add('done');
+    $('videosSection').style.display = 'block';
+    updateGenerateInfo();
+    setStepUI(2);
+
+  } catch(err) {
+    hideLoading('searchLoading', 'searchProgress', 'searchFill');
+    showAlert('searchAlert', 'error', `검색 오류: ${err.message}`);
+  }
+}
+
+/* ── Render a video slot ──────────────────────────────────────────── */
+function renderSlot(slotIdx, video, type) {
+  const el = $(`slot${slotIdx}`);
+  if (!video) {
+    el.className = 'video-slot slot-empty';
+    el.innerHTML = `<span style="font-size:1.4rem;">${slotIdx===0?'📌':'🔍'}</span><span>${slotIdx===0?'기본 영상':'추가 영상 '+slotIdx}</span>`;
+    return;
+  }
+
+  const labelText = slotIdx===0 ? '📌 기본 영상 (고정)' : `🔍 추가 영상 ${slotIdx}`;
+  const badgeClass = type === 'ref' ? 'ref' : 'add';
+
+  el.className = `video-slot slot-${type}`;
+  el.innerHTML = `
+    <div class="slot-badge ${badgeClass}">${labelText}</div>
+    <div class="slot-thumb-wrap">
+      <img class="slot-thumb" src="${escHtml(video.thumb)}" alt="" loading="lazy" />
+      ${video.duration ? `<div class="slot-dur">${video.duration}</div>` : ''}
+    </div>
+    <div class="slot-info">
+      <div class="slot-title">${escHtml(video.title)}</div>
+      <div class="slot-meta">📺 ${escHtml(video.channel)} · ${video.publishedAt}</div>
+      <div class="slot-views">👁️ ${fmtViews(video.viewCount)} views · <a href="${video.url}" target="_blank" style="color:var(--primary);font-size:.75rem;">▶ 열기</a></div>
+    </div>
+    ${slotIdx > 0 ? `<button class="slot-replace" onclick="startSwap(${slotIdx})">🔄 다른 영상으로 교체</button>` : ''}
+  `;
+}
+
+/* ── Render search result pool ────────────────────────────────────── */
+function renderPool(pool) {
+  const grid = $('poolGrid');
+  grid.innerHTML = '';
+  pool.forEach((v, i) => {
+    const isInSlot = slotVideos.some(sv => sv?.id === v.id);
+    const card = document.createElement('div');
+    card.className = 'pool-card';
+    if (isInSlot) card.style.opacity = '.4';
+    card.innerHTML = `
+      <img src="${escHtml(v.thumb)}" alt="" loading="lazy" />
+      <div class="pool-card-info">
+        <div class="pool-card-title">${escHtml(v.title.slice(0,55))}</div>
+        <div class="pool-card-meta">👁️ ${fmtViews(v.viewCount)}</div>
+      </div>`;
+    card.addEventListener('click', () => {
+      if (isInSlot) return;
+      doSwap(i);
+    });
+    grid.appendChild(card);
+  });
+  $('poolSection').style.display = 'block';
+}
+
+function startSwap(slotIdx) {
+  swapTarget = slotIdx;
+  $('poolSection').style.display = 'block';
+  $('poolSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  const label = $('poolSection').querySelector('div');
+  if (label) label.textContent = `슬롯 ${slotIdx} 교체 중 — 아래에서 영상을 선택하세요 (취소: 다시 클릭)`;
+}
+
+function doSwap(poolIdx) {
+  const target = swapTarget ?? (slotVideos[0] === null ? 1 : slotVideos[1] === null ? 2 : 1);
+  const slotIdx = target - 1;
+  slotVideos[slotIdx] = searchPool[poolIdx];
+  renderSlot(target, slotVideos[slotIdx], 'add');
+  swapTarget = null;
+  renderPool(searchPool);
+  updateGenerateInfo();
+}
+
+function updateGenerateInfo() {
+  const count = (refVideo ? 1 : 0) + slotVideos.filter(Boolean).length;
+  $('generateInfo').textContent = count > 0 ? `총 ${count}개 영상 → ${count}개 수업 시트 생성` : '';
+}
+
+/* ── Fetch video metadata ─────────────────────────────────────────── */
+async function fetchVideoMeta(videoId, ytKey) {
+  const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${videoId}&key=${ytKey}`;
+  const res  = await fetch(url);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
+  const item = data.items?.[0];
+  if (!item) throw new Error('영상 정보를 가져올 수 없습니다. URL을 확인해주세요.');
+  return item;
+}
+
+/* ── Fetch transcript ─────────────────────────────────────────────── */
+async function fetchTranscript(videoId) {
+  const proxies = [
+    `https://corsproxy.io/?https://www.youtube.com/api/timedtext?lang=en&v=${videoId}`,
+    `https://corsproxy.io/?https://www.youtube.com/api/timedtext?lang=en-US&v=${videoId}`,
+  ];
+  for (const proxyUrl of proxies) {
+    try {
+      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(6000) });
+      if (!res.ok) continue;
+      const text = await res.text();
+      if (text && text.includes('<text')) {
+        const xml   = new DOMParser().parseFromString(text, 'text/xml');
+        const nodes = xml.querySelectorAll('text');
+        if (nodes.length > 0) {
+          let s = '';
+          nodes.forEach(n => s += (n.textContent||'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'") + ' ');
+          return s.replace(/\s+/g,' ').trim();
+        }
+      }
+    } catch(_) {}
+  }
+  return '';
+}
+
+/* ── Generate lesson ──────────────────────────────────────────────── */
+async function generateLesson() {
+  const claudeKey = $('claudeApiKey').value.trim();
+  if (!claudeKey) return alert('Anthropic Claude API Key를 입력해주세요.');
+  if (!refVideo)  return alert('기본 영상을 먼저 분석해주세요.');
+
+  const allVideos = [refVideo, ...slotVideos.filter(Boolean)];
+  const level     = $('levelSelect').value;
+  const date      = $('lessonDate').value;
+  const className = $('className').value.trim();
+  const topic     = refVideo.title.slice(0, 60);
+  const manualScript = $('manualScript').value.trim();
+
+  setStepUI(2);
+  clearAlert('genAlert');
+  showLoading('genLoading', 'genProgress', 'genFill');
+  $('lessonOutput').classList.remove('show');
+  $('lessonSheets').innerHTML = '';
+
+  try {
+    for (let i = 0; i < allVideos.length; i++) {
+      const info = allVideos[i];
+      $('genLoadingText').textContent = `[${i+1}/${allVideos.length}] "${info.title.slice(0,35)}..." 수업자료 생성 중...`;
+      const transcript = (i === 0 && manualScript) ? manualScript : await fetchTranscript(info.id);
+      const lessonData = await callClaude(claudeKey, info, transcript, level, topic);
+      renderLessonSheet(info, lessonData, transcript, level, date, className, topic);
+    }
+
+    hideLoading('genLoading', 'genProgress', 'genFill');
+    setStepUI(3);
+    $('lessonOutput').classList.add('show');
+    $('lessonOutput').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch(err) {
+    hideLoading('genLoading', 'genProgress', 'genFill');
+    showAlert('genAlert', 'error', `수업자료 생성 오류: ${err.message}`);
+    setStepUI(2);
+  }
+}
+
+/* ── Call Claude API ──────────────────────────────────────────────── */
+async function callClaude(apiKey, videoInfo, transcript, level, topic) {
+  const levelLabel = { beginner:'Beginner (A1-A2)', intermediate:'Intermediate (B1-B2)', advanced:'Advanced (C1-C2)' }[level];
+  const transcriptSection = transcript
+    ? `\n\n<transcript>\n${transcript.slice(0,6000)}\n</transcript>`
+    : `\n\n(No transcript available — generate content based on the video title and description.)`;
+
+  const prompt = `You are an expert English language teacher creating a lesson worksheet for ${levelLabel} students.
+
+Video Information:
+- Title: ${videoInfo.title}
+- Channel: ${videoInfo.channel}
+- Description: ${(videoInfo.description||'').slice(0,500)||'N/A'}
+- Topic: ${topic}${transcriptSection}
+
+Return ONLY valid JSON (no markdown fences):
+{
+  "summary_en": "2–3 sentence summary in English",
+  "summary_ko": "한국어 요약 2–3문장",
+  "key_expressions": [
+    { "expression": "phrase", "translation_ko": "번역", "explanation": "explanation", "example1": "example", "example2": "example" }
+  ],
+  "vocabulary": [
+    { "word": "word", "pos": "n./v./adj.", "definition_ko": "뜻" }
+  ],
+  "comprehension_questions": ["Q1?","Q2?","Q3?","Q4?","Q5?"],
+  "discussion_questions": ["Q1?","Q2?","Q3?"],
+  "teacher_notes": "brief note"
+}
+key_expressions: 6–8 items for ${levelLabel}. vocabulary: 8–10 items.`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ model: 'claude-opus-4-6', max_tokens: 3000, messages: [{ role:'user', content: prompt }] })
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(()=>({}));
+    throw new Error(err?.error?.message || `Claude API 오류 (${response.status})`);
+  }
+  const data    = await response.json();
+  const raw     = data.content?.[0]?.text || '{}';
+  const cleaned = raw.replace(/^```json?\n?/,'').replace(/\n?```$/,'').trim();
+  return JSON.parse(cleaned);
+}
+
+/* ── Render lesson sheet ──────────────────────────────────────────── */
+function renderLessonSheet(videoInfo, data, transcript, level, date, className, topic) {
+  const levelLabel = { beginner:'Beginner (A1–A2)', intermediate:'Intermediate (B1–B2)', advanced:'Advanced (C1–C2)' }[level];
+  const levelColor = { beginner:'#10b981', intermediate:'#4f46e5', advanced:'#ef4444' }[level];
+
+  const exprRows = (data.key_expressions||[]).map((e,i) => `
+    <tr><td>${i+1}</td>
+    <td><div class="expr-phrase">${escHtml(e.expression)}</div><div class="expr-ko">${escHtml(e.translation_ko)}</div></td>
+    <td>${escHtml(e.explanation)}</td>
+    <td><div class="expr-example">${escHtml(e.example1)}</div><div class="expr-example">${escHtml(e.example2)}</div></td>
+    </tr>`).join('');
+
+  const vocabItems = (data.vocabulary||[]).map(v => `
+    <div class="vocab-item">
+      <div class="vocab-word">${escHtml(v.word)}</div>
+      <div class="vocab-pos">${escHtml(v.pos||'')}</div>
+      <div class="vocab-def">${escHtml(v.definition_ko)}</div>
+    </div>`).join('');
+
+  const compQs = (data.comprehension_questions||[]).map((q,i) => `
+    <li><div class="q-num">${i+1}</div><div style="flex:1;"><div>${escHtml(q)}</div><div class="q-answer-line"></div></div></li>`).join('');
+
+  const discQs = (data.discussion_questions||[]).map((q,i) => `
+    <li class="q-disc"><div class="q-num">${i+1}</div><div>${escHtml(q)}</div></li>`).join('');
+
+  const scriptSection = transcript
+    ? `<div class="ls-section"><div class="ls-section-title">📜 Script / Transcript</div>
+       <div class="script-box">${escHtml(transcript.length>1200 ? transcript.slice(0,1200)+'…' : transcript)}</div></div>`
+    : `<div class="ls-section"><div class="ls-section-title">📜 Script / Transcript</div>
+       <div class="alert alert-warning">⚠️ 자막을 자동으로 가져올 수 없습니다. YouTube에서 복사하여 붙여넣기 후 재생성해주세요.</div></div>`;
+
+  const sheet = document.createElement('div');
+  sheet.className = 'lesson-sheet';
+  sheet.innerHTML = `
+    <div class="ls-header">
+      <div class="ls-label">English Lesson Worksheet</div>
+      <h2>${escHtml(topic.toUpperCase())}</h2>
+      <div class="ls-meta">
+        <span>📅 ${date||'Date: ____________'}</span>
+        <span>👥 ${className||'Class: ____________'}</span>
+        <span style="background:${levelColor};padding:2px 10px;border-radius:12px;font-weight:700;">${levelLabel}</span>
+        <span>✏️ Name: _______________________</span>
+      </div>
+    </div>
+    <div class="ls-video-ref">
+      <img src="${videoInfo.thumb}" alt="thumbnail" />
+      <div class="ref-info">
+        <div class="ref-title">${escHtml(videoInfo.title)}</div>
+        <div class="ref-channel">📺 ${escHtml(videoInfo.channel)}</div>
+        <a href="${videoInfo.url}" target="_blank">▶ ${videoInfo.url}</a>
+      </div>
+    </div>
+    <div class="ls-body">
+      <div class="ls-section">
+        <div class="ls-section-title">📋 Content Summary</div>
+        <div class="ls-summary">${escHtml(data.summary_en||'')}
+          <div class="ls-summary-ko">🇰🇷 ${escHtml(data.summary_ko||'')}</div>
+        </div>
+      </div>
+      <div class="ls-section">
+        <div class="ls-section-title">💡 Key Expressions</div>
+        <table class="expr-table">
+          <thead><tr><th style="width:28px;">#</th><th style="width:190px;">Expression</th><th>Explanation</th><th>Examples</th></tr></thead>
+          <tbody>${exprRows}</tbody>
+        </table>
+      </div>
+      <div class="ls-section">
+        <div class="ls-section-title">📖 Vocabulary</div>
+        <div class="vocab-grid">${vocabItems}</div>
+      </div>
+      ${scriptSection}
+      <div class="ls-section">
+        <div class="ls-section-title">❓ Comprehension Questions</div>
+        <ul class="questions-list">${compQs}</ul>
+      </div>
+      <div class="ls-section">
+        <div class="ls-section-title">💬 Discussion Questions</div>
+        <ul class="questions-list">${discQs}</ul>
+      </div>
+      ${data.teacher_notes ? `<div class="ls-section no-print"><div class="ls-section-title">🗒️ Teacher Notes</div><div class="ls-summary">${escHtml(data.teacher_notes)}</div></div>` : ''}
+    </div>`;
+  $('lessonSheets').appendChild(sheet);
+}
+
+/* ── Save as HTML ─────────────────────────────────────────────────── */
+function saveAsHTML() {
+  const sheetsHTML = $('lessonSheets').innerHTML;
+  const topic  = (refVideo?.title||'lesson').replace(/\s+/g,'_').slice(0,40);
+  const date   = $('lessonDate').value || new Date().toISOString().slice(0,10);
+  const html = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>English Lesson · ${date}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+<style>:root{--primary:#4f46e5;--primary-light:#818cf8;--primary-dark:#3730a3;--accent:#f59e0b;--success:#10b981;--bg:#f8fafc;--border:#e2e8f0;--text:#1e293b;--text-muted:#64748b;--radius:12px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;padding:28px 20px}
+.note{background:#f0fdf4;border:1px solid #86efac;color:#166534;border-radius:8px;padding:12px 16px;font-size:.85rem;margin-bottom:16px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;border:none;background:var(--accent);color:white;margin-bottom:20px}
+.lesson-sheet{background:white;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:28px;overflow:hidden}
+.ls-header{background:var(--primary-dark);color:white;padding:22px 32px}.ls-header .ls-label{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;opacity:.7;margin-bottom:4px}
+.ls-header h2{font-size:1.35rem;font-weight:800}.ls-meta{display:flex;gap:16px;margin-top:10px;font-size:.8rem;opacity:.85;flex-wrap:wrap}
+.ls-video-ref{display:flex;align-items:center;gap:14px;padding:14px 32px;background:#f8fafc;border-bottom:1px solid var(--border)}
+.ls-video-ref img{width:90px;border-radius:6px;flex-shrink:0}.ls-video-ref .ref-title{font-size:.9rem;font-weight:600}
+.ls-video-ref .ref-channel{font-size:.78rem;color:var(--text-muted);margin-top:2px}.ls-video-ref a{font-size:.78rem;color:var(--primary);text-decoration:none;font-weight:500}
+.ls-body{padding:28px 32px}.ls-section{margin-bottom:32px}
+.ls-section-title{font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--primary);border-bottom:2px solid var(--primary);padding-bottom:6px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.ls-summary{background:#fafbff;border-left:4px solid var(--primary);border-radius:0 8px 8px 0;padding:12px 16px;font-size:.88rem;line-height:1.7}
+.ls-summary-ko{margin-top:7px;font-size:.83rem;color:var(--text-muted)}
+.expr-table{width:100%;border-collapse:collapse}.expr-table th{background:var(--primary);color:white;padding:8px 12px;font-size:.76rem;text-align:left;font-weight:600}
+.expr-table td{padding:10px 12px;font-size:.85rem;border-bottom:1px solid var(--border);vertical-align:top}
+.expr-table tr:nth-child(even) td{background:#fafbff}.expr-phrase{font-weight:700;color:var(--primary-dark)}.expr-ko{font-size:.76rem;color:var(--text-muted);margin-top:2px}
+.expr-example{font-style:italic;color:var(--text-muted);font-size:.8rem;margin-top:3px}.expr-example::before{content:'예) ';font-weight:600;font-style:normal}
+.vocab-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:9px}
+.vocab-item{border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;background:#fafbff}
+.vocab-word{font-weight:700;color:var(--primary-dark);font-size:.88rem}.vocab-pos{font-size:.7rem;color:var(--accent);font-weight:600;text-transform:uppercase}
+.vocab-def{font-size:.8rem;color:var(--text-muted);margin-top:2px}
+.script-box{background:#fafafa;border:1.5px solid var(--border);border-radius:8px;padding:18px 22px;font-size:.86rem;line-height:1.9;white-space:pre-wrap}
+.questions-list{list-style:none}.questions-list li{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:.88rem;align-items:flex-start}
+.questions-list li:last-child{border-bottom:none}.q-num{width:22px;height:22px;background:var(--primary);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0}
+.q-disc .q-num{background:var(--accent)}.q-answer-line{height:22px;border-bottom:1px solid #ccc;margin-top:4px}
+.alert-warning{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:12px 16px;font-size:.86rem;margin-bottom:12px}
+@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{background:white;padding:0}.note,.btn{display:none!important}
+.lesson-sheet{box-shadow:none;border:none;page-break-after:always;margin-bottom:0}
+.ls-header{background:var(--primary-dark)!important;color:white!important;padding:16px 22px}.ls-body{padding:16px 22px}
+.vocab-grid{grid-template-columns:repeat(3,1fr)}.expr-table th{background:var(--primary)!important}
+.expr-table tr:nth-child(even) td{background:#f0f4ff!important}@page{margin:15mm 18mm;size:A4 portrait}}</style></head>
+<body>
+<div class="note">💡 오프라인 열람 가능. 인쇄하려면 아래 버튼 또는 Ctrl+P.</div>
+<button class="btn" onclick="window.print()">🖨️ PDF 출력 / 인쇄</button>
+${sheetsHTML}
+</body></html>`;
+  const blob = new Blob([html], { type:'text/html;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `english_lesson_${topic}_${date}.html`; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/* ── Reset ────────────────────────────────────────────────────────── */
+function resetAll() {
+  refVideo = null; slotVideos = [null, null]; searchPool = []; swapTarget = null;
+  $('lessonOutput').classList.remove('show');
+  $('lessonSheets').innerHTML = '';
+  $('ytLinkInput').value = '';
+  $('searchQuery').value = '';
+  $('manualScript').value = '';
+  $('poolSection').style.display = 'none';
+  $('poolGrid').innerHTML = '';
+  $('videosSection').style.display = 'none';
+  renderSlot(0, null, 'ref');
+  renderSlot(1, null, 'add');
+  renderSlot(2, null, 'add');
+  ['analyzeAlert','searchAlert','genAlert'].forEach(id => clearAlert(id));
+  $('badge1').classList.remove('done');
+  $('badge2').classList.remove('done');
+  $('generateInfo').textContent = '';
+  setStepUI(1);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
