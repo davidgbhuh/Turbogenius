@@ -726,7 +726,6 @@ async function generateLesson() {
   const level     = $('levelSelect').value;
   const date      = $('lessonDate').value;
   const className = $('className').value.trim();
-  const topic     = refVideo.title.slice(0, 60);
   const manualScript = $('manualScript').value.trim();
 
   setStepUI(2);
@@ -735,24 +734,35 @@ async function generateLesson() {
   $('lessonOutput').classList.remove('show');
   $('lessonSheets').innerHTML = '';
 
-  try {
-    for (let i = 0; i < allVideos.length; i++) {
-      const info = allVideos[i];
-      $('genLoadingText').textContent = `[${i+1}/${allVideos.length}] "${info.title.slice(0,35)}..." 수업자료 생성 중...`;
+  let successCount = 0;
+  const errors = [];
+
+  for (let i = 0; i < allVideos.length; i++) {
+    const info  = allVideos[i];
+    const topic = info.title.slice(0, 60);   // ← 각 영상 고유 제목을 topic으로
+    $('genLoadingText').textContent = `[${i+1}/${allVideos.length}] "${info.title.slice(0,35)}..." 수업자료 생성 중...`;
+    try {
       const transcript = (i === 0 && manualScript) ? manualScript : await fetchTranscript(info.id);
       const lessonData = await callClaude(claudeKey, info, transcript, level, topic);
-      renderLessonSheet(info, lessonData, transcript, level, date, className, topic);
+      renderLessonSheet(info, lessonData, transcript, level, date, className, topic, i + 1, allVideos.length);
+      successCount++;
+    } catch(err) {
+      errors.push(`영상 ${i+1} (${info.title.slice(0,30)}): ${err.message}`);
     }
+  }
 
-    hideLoading('genLoading', 'genProgress', 'genFill');
+  hideLoading('genLoading', 'genProgress', 'genFill');
+
+  if (successCount === 0) {
+    showAlert('genAlert', 'error', `수업자료 생성 실패:\n${errors.join('\n')}`);
+    setStepUI(2);
+  } else {
+    if (errors.length > 0) {
+      showAlert('genAlert', 'warning', `일부 영상 생성 실패:\n${errors.join('\n')}`);
+    }
     setStepUI(3);
     $('lessonOutput').classList.add('show');
     $('lessonOutput').scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-  } catch(err) {
-    hideLoading('genLoading', 'genProgress', 'genFill');
-    showAlert('genAlert', 'error', `수업자료 생성 오류: ${err.message}`);
-    setStepUI(2);
   }
 }
 
@@ -809,9 +819,10 @@ key_expressions: 6–8 items for ${levelLabel}. vocabulary: 8–10 items.`;
 }
 
 /* ── Render lesson sheet ──────────────────────────────────────────── */
-function renderLessonSheet(videoInfo, data, transcript, level, date, className, topic) {
+function renderLessonSheet(videoInfo, data, transcript, level, date, className, topic, sheetNum, totalSheets) {
   const levelLabel = { beginner:'Beginner (A1–A2)', intermediate:'Intermediate (B1–B2)', advanced:'Advanced (C1–C2)' }[level];
   const levelColor = { beginner:'#10b981', intermediate:'#4f46e5', advanced:'#ef4444' }[level];
+  const sheetLabel = totalSheets > 1 ? `Video ${sheetNum} of ${totalSheets}` : '';
 
   const exprRows = (data.key_expressions||[]).map((e,i) => `
     <tr><td>${i+1}</td>
@@ -843,7 +854,7 @@ function renderLessonSheet(videoInfo, data, transcript, level, date, className, 
   sheet.className = 'lesson-sheet';
   sheet.innerHTML = `
     <div class="ls-header">
-      <div class="ls-label">English Lesson Worksheet</div>
+      <div class="ls-label">English Lesson Worksheet${sheetLabel ? ' · ' + sheetLabel : ''}</div>
       <h2>${escHtml(topic.toUpperCase())}</h2>
       <div class="ls-meta">
         <span>📅 ${date||'Date: ____________'}</span>
