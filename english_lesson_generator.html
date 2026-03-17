@@ -172,6 +172,36 @@
     .view-count-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
     .view-count-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-light)); border-radius: 2px; transition: width .6s ease; }
 
+    /* ─── Mode tabs ──────────────────────────────────────────── */
+    .mode-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 0; }
+    .mode-tab {
+      padding: 9px 18px;
+      border: none;
+      background: none;
+      font-size: .88rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      border-radius: 6px 6px 0 0;
+      transition: color .15s, border-color .15s, background .15s;
+    }
+    .mode-tab:hover { color: var(--primary); background: #f0f4ff; }
+    .mode-tab.active { color: var(--primary-dark); border-bottom-color: var(--primary); background: #f0f4ff; }
+
+    /* ─── Reference video preview ────────────────────────────── */
+    .ref-video-preview {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: #f0f4ff;
+      border: 1.5px solid var(--primary-light);
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .ref-video-preview img { width: 120px; border-radius: 6px; flex-shrink: 0; }
+
     /* ─── Step indicators ────────────────────────────────────── */
     .steps { display: flex; align-items: center; gap: 0; margin-bottom: 28px; }
     .step {
@@ -508,35 +538,86 @@
     </div>
 
     <div class="card">
-      <div class="card-title"><span>🎯</span> 수업 주제 &amp; 설정</div>
-      <div class="form-grid">
-        <div class="form-group full">
-          <label>수업 주제 (Topic)</label>
-          <input type="text" id="topicInput" placeholder="예: climate change / artificial intelligence / healthy eating habits / social media" />
+      <div class="card-title"><span>🎯</span> 검색 방식 선택</div>
+
+      <!-- Mode tabs -->
+      <div class="mode-tabs">
+        <button class="mode-tab active" id="tabTopic" onclick="switchMode('topic')">
+          🔍 주제로 검색
+        </button>
+        <button class="mode-tab" id="tabLink" onclick="switchMode('link')">
+          🔗 YouTube 링크로 연관 추천
+        </button>
+      </div>
+
+      <!-- Mode: Topic -->
+      <div id="modeTopic">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>수업 주제 (Topic)</label>
+            <input type="text" id="topicInput" placeholder="예: climate change / artificial intelligence / healthy eating habits / social media" />
+          </div>
+          <div class="form-group">
+            <label>콘텐츠 유형</label>
+            <select id="contentType">
+              <option value="youtube">YouTube Video</option>
+              <option value="podcast">Podcast</option>
+              <option value="both" selected>YouTube + Podcast (혼합)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>기간 필터</label>
+            <select id="periodFilter">
+              <option value="6m">최근 6개월</option>
+              <option value="1y" selected>최근 1년</option>
+              <option value="2y">최근 2년</option>
+              <option value="all">전체 (기간 제한 없음)</option>
+            </select>
+          </div>
         </div>
+      </div>
+
+      <!-- Mode: YouTube Link -->
+      <div id="modeLink" style="display:none;">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>YouTube 링크 붙여넣기</label>
+            <input type="url" id="ytLinkInput" placeholder="https://www.youtube.com/watch?v=... 또는 https://youtu.be/..." />
+            <div class="hint">입력한 영상이 📌 수업 영상 1번으로 포함되고, 연관 영상 2개를 자동 추천합니다.</div>
+          </div>
+          <div class="form-group">
+            <label>기간 필터</label>
+            <select id="periodFilterLink">
+              <option value="6m">최근 6개월</option>
+              <option value="1y" selected>최근 1년</option>
+              <option value="2y">최근 2년</option>
+              <option value="all">전체 (기간 제한 없음)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Reference video preview -->
+        <div id="refVideoBox" style="display:none;margin-top:16px;">
+          <div class="ls-section-title" style="font-size:.8rem;">📌 기준 영상</div>
+          <div class="ref-video-preview">
+            <img id="refThumb" src="" alt="" />
+            <div>
+              <div id="refTitle" style="font-weight:700;font-size:.9rem;"></div>
+              <div id="refChannel" style="font-size:.8rem;color:var(--text-muted);margin-top:3px;"></div>
+              <div id="refTags" style="font-size:.75rem;color:var(--primary);margin-top:4px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Common settings -->
+      <div class="form-grid" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
         <div class="form-group">
           <label>학습자 수준</label>
           <select id="levelSelect">
             <option value="beginner">Beginner (A1–A2)</option>
             <option value="intermediate" selected>Intermediate (B1–B2)</option>
             <option value="advanced">Advanced (C1–C2)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>콘텐츠 유형</label>
-          <select id="contentType">
-            <option value="youtube">YouTube Video</option>
-            <option value="podcast">Podcast</option>
-            <option value="both" selected>YouTube + Podcast (혼합)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>기간 필터</label>
-          <select id="periodFilter">
-            <option value="6m">최근 6개월</option>
-            <option value="1y" selected>최근 1년</option>
-            <option value="2y">최근 2년</option>
-            <option value="all">전체 (기간 제한 없음)</option>
           </select>
         </div>
         <div class="form-group">
@@ -550,18 +631,20 @@
       </div>
 
       <div class="btn-row">
-        <button class="btn btn-primary" onclick="searchVideos()">
-          🔍 YouTube 검색 (3개)
+        <button class="btn btn-primary" id="searchBtn" onclick="searchVideos()">
+          🔍 YouTube 검색
         </button>
       </div>
 
       <div class="loading" id="searchLoading">
         <div class="spinner"></div>
-        <span>YouTube에서 관련 영상을 검색 중입니다...</span>
+        <span id="searchLoadingText">YouTube에서 관련 영상을 검색 중입니다...</span>
       </div>
       <div class="progress-bar" id="searchProgress" style="display:none;">
         <div class="progress-fill" id="searchFill"></div>
       </div>
+
+      <div id="searchAlertBox"></div>
     </div>
 
     <!-- ─── Section 2: Video Results ──────────────────────────────── -->
@@ -684,15 +767,63 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+/* ── Mode switch ──────────────────────────────────────────────────── */
+let currentMode = 'topic'; // 'topic' | 'link'
+
+function switchMode(mode) {
+  currentMode = mode;
+  $('modeTopic').style.display = mode === 'topic' ? '' : 'none';
+  $('modeLink').style.display  = mode === 'link'  ? '' : 'none';
+  $('tabTopic').classList.toggle('active', mode === 'topic');
+  $('tabLink').classList.toggle('active',  mode === 'link');
+  $('searchBtn').textContent = mode === 'topic'
+    ? '🔍 YouTube 검색 (3개)'
+    : '🔗 연관 영상 추천 (3개)';
+  clearAlert('searchAlertBox');
+  $('refVideoBox').style.display = 'none';
+}
+
+/* ── Extract YouTube video ID from URL ────────────────────────────── */
+function extractVideoId(url) {
+  if (!url) return null;
+  const patterns = [
+    /[?&]v=([a-zA-Z0-9_-]{11})/,      // watch?v=
+    /youtu\.be\/([a-zA-Z0-9_-]{11})/,  // youtu.be/
+    /embed\/([a-zA-Z0-9_-]{11})/,      // embed/
+    /shorts\/([a-zA-Z0-9_-]{11})/,     // shorts/
+  ];
+  for (const re of patterns) {
+    const m = url.match(re);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+/* ── Fetch metadata of a single video ────────────────────────────── */
+async function fetchVideoMeta(videoId, ytKey) {
+  const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${videoId}&key=${ytKey}`;
+  const res  = await fetch(url);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
+  const item = data.items?.[0];
+  if (!item) throw new Error('영상 정보를 가져올 수 없습니다. URL을 확인해주세요.');
+  return item;
+}
+
 /* ── Step 1 → 2: Search YouTube ───────────────────────────────────── */
 async function searchVideos() {
-  const ytKey  = $('ytApiKey').value.trim();
+  const ytKey = $('ytApiKey').value.trim();
+  if (!ytKey) return alert('YouTube API Key를 입력해주세요.');
+
+  if (currentMode === 'link') {
+    return searchByLink(ytKey);
+  }
+
   const topic  = $('topicInput').value.trim();
   const level  = $('levelSelect').value;
   const type   = $('contentType').value;
   const period = $('periodFilter').value;
 
-  if (!ytKey)  return alert('YouTube API Key를 입력해주세요.');
   if (!topic)  return alert('수업 주제를 입력해주세요.');
 
   // Build search query
@@ -711,55 +842,66 @@ async function searchVideos() {
   }
 
   setStep(2);
+  clearAlert('searchAlertBox');
   showLoading('searchLoading', 'searchProgress', 'searchFill');
   $('videoSection').style.display = 'none';
   selectedVideos.clear();
   videoDataMap = {};
 
   try {
-    // 1) Search API — order=viewCount + publishedAfter, fetch 9 candidates
-    let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoCaption=closedCaption&order=viewCount&maxResults=9&relevanceLanguage=en&hl=en&key=${ytKey}`;
+    // 1) Search API
+    let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&order=relevance&maxResults=9&relevanceLanguage=en&hl=en&key=${ytKey}`;
     if (publishedAfter) searchUrl += `&publishedAfter=${encodeURIComponent(publishedAfter)}`;
 
+    console.log('[Search] URL:', searchUrl);
     const searchRes = await fetch(searchUrl);
-    if (!searchRes.ok) {
-      const err = await searchRes.json();
-      throw new Error(err?.error?.message || `HTTP ${searchRes.status}`);
-    }
     const searchData = await searchRes.json();
-    const candidates = searchData.items || [];
+    console.log('[Search] Response:', searchData);
+
+    if (!searchRes.ok) {
+      const msg = searchData?.error?.message || `HTTP ${searchRes.status}`;
+      throw new Error(`YouTube 검색 실패: ${msg}`);
+    }
+
+    const candidates = (searchData.items || []).filter(i => i.id?.videoId);
+    console.log('[Search] Candidates:', candidates.length);
 
     if (candidates.length === 0) throw new Error('검색 결과가 없습니다. 기간을 넓히거나 다른 주제를 입력해보세요.');
 
-    // 2) videos.list — get statistics + contentDetails for all candidates
-    const ids = candidates.map(i => i.id.videoId).join(',');
-    const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=${ids}&key=${ytKey}`;
-    const statsRes  = await fetch(statsUrl);
-    const statsData = await statsRes.json();
+    // 2) videos.list — statistics + contentDetails (실패해도 검색 결과는 표시)
+    let statsMap = {};
+    try {
+      const ids = candidates.map(i => i.id.videoId).join(',');
+      const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=${ids}&key=${ytKey}`;
+      console.log('[Stats] URL:', statsUrl);
+      const statsRes  = await fetch(statsUrl);
+      const statsData = await statsRes.json();
+      console.log('[Stats] Response:', statsData);
 
-    // Build stats map: videoId → { viewCount, likeCount, duration }
-    const statsMap = {};
-    (statsData.items || []).forEach(v => {
-      statsMap[v.id] = {
-        viewCount: parseInt(v.statistics?.viewCount || 0, 10),
-        likeCount: parseInt(v.statistics?.likeCount || 0, 10),
-        duration:  parseDuration(v.contentDetails?.duration || ''),
-      };
-    });
+      if (statsRes.ok) {
+        (statsData.items || []).forEach(v => {
+          statsMap[v.id] = {
+            viewCount: parseInt(v.statistics?.viewCount || 0, 10),
+            likeCount: parseInt(v.statistics?.likeCount || 0, 10),
+            duration:  parseDuration(v.contentDetails?.duration || ''),
+          };
+        });
+      }
+    } catch(statsErr) {
+      console.warn('[Stats] 통계 조회 실패 (무시하고 계속):', statsErr);
+    }
 
-    // 3) Sort candidates by viewCount descending, pick top 3
-    const sorted = candidates
-      .filter(i => statsMap[i.id.videoId])
+    // 3) 조회수 순 정렬 → top 3. 통계 없으면 원래 순서 유지
+    const sorted = [...candidates]
       .sort((a, b) => (statsMap[b.id.videoId]?.viewCount || 0) - (statsMap[a.id.videoId]?.viewCount || 0))
       .slice(0, 3);
-
-    if (sorted.length === 0) throw new Error('유효한 검색 결과가 없습니다. 다른 주제를 시도해보세요.');
 
     renderVideos(sorted, statsMap);
     hideLoading('searchLoading', 'searchProgress', 'searchFill');
     $('videoSection').style.display = 'block';
 
   } catch(err) {
+    console.error('[Search] Error:', err);
     hideLoading('searchLoading', 'searchProgress', 'searchFill');
     showAlert('searchAlertBox', 'error', `검색 오류: ${err.message}`);
     setStep(1);
@@ -782,13 +924,135 @@ function fmtViews(n) {
   return String(n);
 }
 
-function renderVideos(items, statsMap) {
+/* ── Search by YouTube Link ───────────────────────────────────────── */
+async function searchByLink(ytKey) {
+  const rawUrl = $('ytLinkInput').value.trim();
+  const period = $('periodFilterLink').value;
+  const level  = $('levelSelect').value;
+
+  if (!rawUrl) return alert('YouTube 링크를 입력해주세요.');
+
+  const videoId = extractVideoId(rawUrl);
+  if (!videoId) return alert('유효한 YouTube 링크가 아닙니다.\n예: https://www.youtube.com/watch?v=XXXXXXXXXXX');
+
+  setStep(2);
+  clearAlert('searchAlertBox');
+  showLoading('searchLoading', 'searchProgress', 'searchFill');
+  $('searchLoadingText').textContent = '기준 영상 정보를 분석 중입니다...';
+  $('videoSection').style.display = 'none';
+  $('refVideoBox').style.display = 'none';
+  selectedVideos.clear();
+  videoDataMap = {};
+
+  try {
+    // 1) 기준 영상 메타데이터 가져오기
+    const refItem   = await fetchVideoMeta(videoId, ytKey);
+    const refSnip   = refItem.snippet;
+    const refTitle  = refSnip.title || '';
+    const refChan   = refSnip.channelTitle || '';
+    const refThumb  = refSnip.thumbnails?.medium?.url || '';
+    const refTags   = (refSnip.tags || []).slice(0, 6);
+    const refDesc   = (refSnip.description || '').slice(0, 300);
+    const refCatId  = refSnip.categoryId || '';
+
+    // 기준 영상 미리보기 표시
+    $('refThumb').src   = refThumb;
+    $('refTitle').textContent   = refTitle;
+    $('refChannel').textContent = '📺 ' + refChan;
+    $('refTags').textContent    = refTags.length ? '🏷 ' + refTags.join(' · ') : '';
+    $('refVideoBox').style.display = 'block';
+
+    // 2) 검색 키워드 구성 — 제목 핵심어 + 상위 태그
+    const titleWords = refTitle.replace(/[^\w\s]/g, ' ').split(/\s+/)
+      .filter(w => w.length > 3 && !/^(this|that|with|from|have|will|your|what|when|where|which|they|them|their|about|english|video)$/i.test(w))
+      .slice(0, 5);
+    const tagWords   = refTags.slice(0, 3);
+    const query      = [...new Set([...titleWords, ...tagWords])].join(' ');
+
+    console.log('[Link Search] Reference video:', refTitle);
+    console.log('[Link Search] Search query:', query);
+
+    $('searchLoadingText').textContent = `"${refTitle.slice(0,40)}..." 연관 영상 검색 중...`;
+
+    // publishedAfter
+    let publishedAfter = '';
+    if (period !== 'all') {
+      const d = new Date();
+      if (period === '6m') d.setMonth(d.getMonth() - 6);
+      if (period === '1y') d.setFullYear(d.getFullYear() - 1);
+      if (period === '2y') d.setFullYear(d.getFullYear() - 2);
+      publishedAfter = d.toISOString();
+    }
+
+    // 3) 연관 영상 검색 (기준 영상 제외, 2개만 필요)
+    let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&order=relevance&maxResults=12&relevanceLanguage=en&hl=en&key=${ytKey}`;
+    if (refCatId)       searchUrl += `&videoCategoryId=${refCatId}`;
+    if (publishedAfter) searchUrl += `&publishedAfter=${encodeURIComponent(publishedAfter)}`;
+
+    const searchRes  = await fetch(searchUrl);
+    const searchData = await searchRes.json();
+    console.log('[Link Search] Results:', searchData);
+
+    if (!searchRes.ok) throw new Error(searchData?.error?.message || `HTTP ${searchRes.status}`);
+
+    // 기준 영상 제외 후 2개 후보 선택
+    const relatedCandidates = (searchData.items || [])
+      .filter(i => i.id?.videoId && i.id.videoId !== videoId);
+
+    if (relatedCandidates.length === 0) throw new Error('연관 영상을 찾을 수 없습니다. 기간 필터를 넓혀보세요.');
+
+    // 4) 기준 영상 + 관련 후보 전체 통계 조회
+    let statsMap = {};
+    try {
+      const allIds = [videoId, ...relatedCandidates.map(i => i.id.videoId)].join(',');
+      const statsRes  = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=${allIds}&key=${ytKey}`);
+      const statsData = await statsRes.json();
+      if (statsRes.ok) {
+        (statsData.items || []).forEach(v => {
+          statsMap[v.id] = {
+            viewCount: parseInt(v.statistics?.viewCount || 0, 10),
+            likeCount: parseInt(v.statistics?.likeCount || 0, 10),
+            duration:  parseDuration(v.contentDetails?.duration || ''),
+          };
+        });
+      }
+    } catch(e) { console.warn('[Link Search] Stats error (ignored):', e); }
+
+    // 관련 영상 조회수 순 정렬 → 상위 2개
+    const top2Related = [...relatedCandidates]
+      .sort((a, b) => (statsMap[b.id.videoId]?.viewCount || 0) - (statsMap[a.id.videoId]?.viewCount || 0))
+      .slice(0, 2);
+
+    // 기준 영상을 search result 형식으로 변환 후 맨 앞에 배치
+    const refAsItem = {
+      id: { videoId },
+      snippet: refSnip,
+    };
+    const finalItems = [refAsItem, ...top2Related];
+
+    // topic 입력란에 기준 영상 제목을 자동 채워넣기 (수업자료 생성에 활용)
+    $('topicInput').value = refTitle.slice(0, 60);
+
+    renderVideos(finalItems, statsMap, videoId);
+    hideLoading('searchLoading', 'searchProgress', 'searchFill');
+    $('videoSection').style.display = 'block';
+
+  } catch(err) {
+    console.error('[Link Search] Error:', err);
+    hideLoading('searchLoading', 'searchProgress', 'searchFill');
+    showAlert('searchAlertBox', 'error', `연관 영상 검색 오류: ${err.message}`);
+    setStep(1);
+  }
+}
+
+function renderVideos(items, statsMap, refVideoId = null) {
   const grid = $('videosGrid');
   grid.innerHTML = '';
 
   // Max view count for relative bar
   const maxViews = Math.max(...items.map(i => statsMap[i.id.videoId]?.viewCount || 0), 1);
 
+  let relatedIdx = 0;
   items.forEach((item, idx) => {
     const vid   = item.id.videoId;
     const snip  = item.snippet;
@@ -801,15 +1065,29 @@ function renderVideos(items, statsMap) {
     const views  = stats.viewCount || 0;
     const dur    = stats.duration  || '';
     const pct    = Math.round((views / maxViews) * 100);
+    const isRef  = vid === refVideoId;
 
     videoDataMap[vid] = { title, channel: chan, thumb, url: `https://www.youtube.com/watch?v=${vid}`, description: desc, publishedAt: date, viewCount: views };
 
+    // 배지: 기준 영상 vs 관련 영상 vs 주제 검색
+    let badge;
+    if (isRef) {
+      badge = `<span class="video-badge" style="background:#0ea5e9;">📌 내 영상</span>`;
+    } else if (refVideoId) {
+      relatedIdx++;
+      badge = `<span class="video-badge" style="background:var(--success);">🔗 연관 ${relatedIdx}위</span>`;
+    } else {
+      badge = `<span class="video-badge">🏆 인기순 ${idx+1}위</span>`;
+    }
+
     const card = document.createElement('div');
     card.className = 'video-card';
+    if (isRef) card.classList.add('ref-video');
     card.dataset.vid = vid;
     card.innerHTML = `
       <div style="position:relative;">
         <img class="video-thumb" src="${thumb}" alt="${escHtml(title)}" loading="lazy" />
+        ${isRef ? `<div style="position:absolute;top:0;left:0;right:0;background:rgba(14,165,233,.85);color:white;font-size:.72rem;font-weight:700;padding:4px 8px;text-align:center;">📌 내가 선택한 영상</div>` : ''}
         ${dur ? `<span style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.75);color:#fff;font-size:.72rem;font-weight:600;padding:2px 6px;border-radius:4px;">${dur}</span>` : ''}
       </div>
       <div class="video-info">
@@ -820,15 +1098,19 @@ function renderVideos(items, statsMap) {
           ${stats.likeCount ? `<span>👍 ${fmtViews(stats.likeCount)}</span>` : ''}
         </div>
         <div class="view-count-bar"><div class="view-count-fill" style="width:${pct}%"></div></div>
-        <div style="margin-top:8px;"><span class="video-badge">🏆 인기순 ${idx+1}위</span></div>
+        <div style="margin-top:8px;">${badge}</div>
       </div>`;
     card.addEventListener('click', () => toggleVideo(vid, card));
     grid.appendChild(card);
   });
 
-  // Auto-select first card
-  const first = grid.querySelector('.video-card');
-  if (first) first.click();
+  // Auto-select all cards in link mode, first only in topic mode
+  if (refVideoId) {
+    grid.querySelectorAll('.video-card').forEach(c => c.click());
+  } else {
+    const first = grid.querySelector('.video-card');
+    if (first) first.click();
+  }
 }
 
 function toggleVideo(vid, card) {
@@ -1164,13 +1446,13 @@ function renderLessonSheet(videoInfo, data, transcript, level, date, className, 
 
 /* ── Alert helper ─────────────────────────────────────────────────── */
 function showAlert(containerId, type, msg) {
-  let box = $(containerId);
-  if (!box) {
-    box = document.createElement('div');
-    box.id = containerId;
-    $('videoSection') ? $('videoSection').prepend(box) : document.querySelector('.search-section').append(box);
-  }
-  box.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  const box = $(containerId);
+  if (!box) return;
+  box.innerHTML = `<div class="alert alert-${type}" style="margin-top:14px;">${msg}</div>`;
+}
+function clearAlert(containerId) {
+  const box = $(containerId);
+  if (box) box.innerHTML = '';
 }
 
 /* ── Escape HTML ──────────────────────────────────────────────────── */
