@@ -237,7 +237,7 @@
 <!-- Header -->
 <header class="app-header">
   <h1>English Lesson Generator</h1>
-  <p>유튜브 링크 + 키워드 검색 → 영상 3개 → Key Expressions · Script → PDF 수업자료</p>
+  <p>유튜브 링크 + 추가 검색 → 영상 2개 → Key Expressions · Script → HTML/PDF 수업자료</p>
 </header>
 
 <div class="container">
@@ -1021,7 +1021,6 @@ function resetAll() {
   $('videosSection').style.display = 'none';
   renderSlot(0, null, 'ref');
   renderSlot(1, null, 'add');
-  renderSlot(2, null, 'add');
   ['analyzeAlert','searchAlert','genAlert'].forEach(id => clearAlert(id));
   $('badge1').classList.remove('done');
   $('badge2').classList.remove('done');
