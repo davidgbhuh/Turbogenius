@@ -237,7 +237,7 @@
 <!-- Header -->
 <header class="app-header">
   <h1>English Lesson Generator</h1>
-  <p>유튜브 링크 + 추가 검색 → 영상 2개 → Key Expressions · Script → HTML/PDF 수업자료</p>
+  <p>유튜브 링크 또는 키워드 검색 → 영상 자동 선택 → Key Expressions · Script → HTML/PDF 수업자료</p>
 </header>
 
 <div class="container">
@@ -251,57 +251,76 @@
     <div class="step-ind" id="si3"><div class="sn">3</div><span>PDF 출력</span></div>
   </div>
 
-  <!-- ── API Keys ──────────────────────────────────────────── -->
-  <div class="card">
-    <div class="card-title">🔑 API 키 설정</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-      <div class="form-group">
-        <label>YouTube Data API v3 Key</label>
-        <input type="password" id="ytApiKey" placeholder="AIza..." autocomplete="off" />
-        <div class="hint"><a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank">Google Cloud Console</a>에서 무료 발급</div>
-      </div>
-      <div class="form-group">
-        <label>Google Gemini API Key</label>
-        <input type="password" id="geminiApiKey" placeholder="AIza..." autocomplete="off" />
-        <div class="hint">⚠️ 반드시 <a href="https://aistudio.google.com/app/apikey" target="_blank"><strong>AI Studio</strong></a>에서 발급 (Cloud Console 키 사용 불가) · 개인 Gmail 계정 필요</div>
-      </div>
-      <div class="form-group">
-        <label>Gemini 모델</label>
-        <input list="geminiModelList" id="geminiModel" value="gemini-2.5-flash-preview-04-17"
-          style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;width:100%;" />
-        <datalist id="geminiModelList">
-          <option value="gemini-2.5-flash-preview-04-17">gemini-2.5-flash-preview-04-17 (권장)</option>
-          <option value="gemini-2.5-pro-preview-03-25">gemini-2.5-pro-preview-03-25</option>
-          <option value="gemini-2.0-flash">gemini-2.0-flash</option>
-          <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-          <option value="gemini-1.5-pro">gemini-1.5-pro</option>
-        </datalist>
-        <div class="hint">
-          오류 시 다른 모델명으로 변경하거나 직접 입력하세요.
-          내 키에서 사용 가능한 모델 확인:
-          <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank">모델 목록 보기</a>
-          · <button type="button" onclick="listGeminiModels()" style="font-size:.75rem;padding:2px 8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:white;">내 키로 모델 조회</button>
-        </div>
-      </div>
+  <!-- ── API Keys (hidden – built-in) ─────────────────────── -->
+  <input type="hidden" id="ytApiKey" />
+  <input type="hidden" id="geminiApiKey" />
+
+  <!-- ── Model selector ───────────────────────────────────── -->
+  <div class="card" style="padding:14px 26px;">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <label style="font-size:.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">Gemini 모델</label>
+      <input list="geminiModelList" id="geminiModel" value="gemini-2.5-flash-preview-04-17"
+        style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;flex:1;min-width:240px;" />
+      <datalist id="geminiModelList">
+        <option value="gemini-2.5-flash-preview-04-17">gemini-2.5-flash-preview-04-17 (권장)</option>
+        <option value="gemini-2.5-pro-preview-03-25">gemini-2.5-pro-preview-03-25</option>
+        <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+        <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+        <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+      </datalist>
+      <button type="button" onclick="listGeminiModels()" class="btn btn-outline" style="font-size:.8rem;padding:6px 14px;">모델 조회</button>
     </div>
   </div>
 
   <!-- ── Main flow card ────────────────────────────────────── -->
   <div class="card">
 
-    <!-- Step 1: YouTube link -->
+    <!-- Step 1: YouTube link OR keyword-only -->
     <div class="flow-step">
       <div class="step-header">
         <div class="step-badge" id="badge1">1</div>
         <div>
-          <div class="step-title">기본 영상 — 유튜브 링크 입력</div>
-          <div class="step-desc">수업의 메인 영상입니다. 항상 포함됩니다.</div>
+          <div class="step-title">기본 영상 선택</div>
+          <div class="step-desc">유튜브 링크를 입력하거나, 키워드 검색만으로 바로 시작할 수 있습니다.</div>
         </div>
       </div>
-      <div class="form-row">
-        <input type="url" id="ytLinkInput" placeholder="https://www.youtube.com/watch?v=...  또는  https://youtu.be/..." />
-        <button class="btn btn-sky" onclick="analyzeLink()">🔎 영상 분석</button>
+
+      <!-- Mode tabs -->
+      <div style="display:flex;gap:0;margin-bottom:12px;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;width:fit-content;">
+        <button id="tabUrl" onclick="switchTab('url')"
+          style="padding:7px 18px;font-size:.85rem;font-weight:600;border:none;cursor:pointer;background:var(--primary);color:white;">
+          🔗 YouTube 링크
+        </button>
+        <button id="tabKw" onclick="switchTab('kw')"
+          style="padding:7px 18px;font-size:.85rem;font-weight:600;border:none;cursor:pointer;background:white;color:var(--text-muted);">
+          🔍 키워드 검색
+        </button>
       </div>
+
+      <!-- URL mode -->
+      <div id="modeUrl">
+        <div class="form-row">
+          <input type="url" id="ytLinkInput" placeholder="https://www.youtube.com/watch?v=...  또는  https://youtu.be/..." />
+          <button class="btn btn-sky" onclick="analyzeLink()">🔎 영상 분석</button>
+        </div>
+      </div>
+
+      <!-- Keyword-only mode -->
+      <div id="modeKw" style="display:none;">
+        <div class="form-row">
+          <input type="text" id="kwOnlyInput" placeholder="예: climate change, AI in daily life, healthy habits..." />
+          <select id="kwOnlyPeriod" style="width:140px;flex:none;">
+            <option value="1y" selected>최근 1년</option>
+            <option value="2y">최근 2년</option>
+            <option value="all">전체</option>
+          </select>
+          <button class="btn btn-primary" onclick="searchKeywordOnly()">🔍 검색 후 자동선택</button>
+        </div>
+        <div class="loading" id="kwLoading"><div class="spinner"></div><span>검색 중...</span></div>
+        <div class="progress-bar" id="kwProgress" style="display:none;"><div class="progress-fill" id="kwFill"></div></div>
+        <div id="kwAlert"></div>
+      </div>
+
       <div class="loading" id="analyzeLoading"><div class="spinner"></div><span>영상 정보를 불러오는 중...</span></div>
       <div class="progress-bar" id="analyzeProgress" style="display:none;"><div class="progress-fill" id="analyzeFill"></div></div>
       <div id="analyzeAlert"></div>
@@ -401,6 +420,10 @@
 </div><!-- /container -->
 
 <script>
+/* ── API Keys ─────────────────────────────────────────────────────── */
+const YT_API_KEY     = 'AIzaSyBq8tMekAAug9BDhoN2DOt-KtKkI3iKjjc';
+const GEMINI_API_KEY = 'AIzaSyC9-BnjEZ0vEWtMO0WBsH5ZGjL0xbwW774';
+
 /* ── Helpers ──────────────────────────────────────────────────────── */
 const $ = id => document.getElementById(id);
 
@@ -473,21 +496,27 @@ let slotVideos  = [null];         // additional video for slot 1
 let searchPool  = [];             // all search results for swapping
 let swapTarget  = null;           // which slot is being swapped (1 or 2)
 
+/* ── Tab switch ───────────────────────────────────────────────────── */
+function switchTab(mode) {
+  const isUrl = mode === 'url';
+  $('modeUrl').style.display = isUrl ? 'block' : 'none';
+  $('modeKw').style.display  = isUrl ? 'none'  : 'block';
+  $('tabUrl').style.background = isUrl ? 'var(--primary)' : 'white';
+  $('tabUrl').style.color      = isUrl ? 'white' : 'var(--text-muted)';
+  $('tabKw').style.background  = isUrl ? 'white' : 'var(--primary)';
+  $('tabKw').style.color       = isUrl ? 'var(--text-muted)' : 'white';
+}
+
 /* ── Init ─────────────────────────────────────────────────────────── */
 window.addEventListener('DOMContentLoaded', () => {
   $('lessonDate').value = new Date().toISOString().split('T')[0];
-  ['ytApiKey','geminiApiKey'].forEach(id => {
-    const v = localStorage.getItem(id); if (v) $(id).value = v;
-    $(id).addEventListener('input', () => localStorage.setItem(id, $(id).value));
-  });
   setStepUI(1);
 });
 
 /* ── Step 1: Analyze YouTube link ─────────────────────────────────── */
 async function analyzeLink() {
-  const ytKey  = $('ytApiKey').value.trim();
+  const ytKey  = YT_API_KEY;
   const rawUrl = $('ytLinkInput').value.trim();
-  if (!ytKey)  return alert('YouTube API Key를 입력해주세요.');
   if (!rawUrl) return alert('YouTube 링크를 입력해주세요.');
 
   const vid = extractVideoId(rawUrl);
@@ -530,12 +559,84 @@ async function analyzeLink() {
   }
 }
 
+/* ── Keyword-only mode: fill both slots from search ──────────────── */
+async function searchKeywordOnly() {
+  const query  = $('kwOnlyInput').value.trim();
+  const period = $('kwOnlyPeriod').value;
+  if (!query) return alert('검색어를 입력해주세요.');
+
+  clearAlert('kwAlert');
+  showLoading('kwLoading', 'kwProgress', 'kwFill');
+
+  try {
+    let publishedAfter = '';
+    if (period !== 'all') {
+      const d = new Date();
+      if (period === '1y') d.setFullYear(d.getFullYear()-1);
+      if (period === '2y') d.setFullYear(d.getFullYear()-2);
+      publishedAfter = d.toISOString();
+    }
+
+    let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&order=relevance&maxResults=9&relevanceLanguage=en&hl=en&key=${YT_API_KEY}`;
+    if (publishedAfter) url += `&publishedAfter=${encodeURIComponent(publishedAfter)}`;
+
+    const res  = await fetch(url);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
+
+    const seenIds  = new Set();
+    const candidates = (data.items||[]).filter(i => {
+      if (!i.id?.videoId || seenIds.has(i.id.videoId)) return false;
+      seenIds.add(i.id.videoId); return true;
+    });
+    if (candidates.length < 1) throw new Error('검색 결과가 없습니다. 다른 검색어나 기간을 시도해보세요.');
+
+    let statsMap = {};
+    try {
+      const ids = candidates.map(i=>i.id.videoId).join(',');
+      const sr  = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id=${ids}&key=${YT_API_KEY}`);
+      const sd  = await sr.json();
+      if (sr.ok) (sd.items||[]).forEach(v => {
+        statsMap[v.id] = { viewCount: parseInt(v.statistics?.viewCount||0,10), duration: parseDuration(v.contentDetails?.duration||'') };
+      });
+    } catch(e) {}
+
+    const sorted = [...candidates].sort((a,b) => (statsMap[b.id.videoId]?.viewCount||0) - (statsMap[a.id.videoId]?.viewCount||0));
+    const toVideo = item => {
+      const vid = item.id.videoId; const snip = item.snippet; const s = statsMap[vid]||{};
+      return { id: vid, title: snip.title||'', channel: snip.channelTitle||'',
+        thumb: snip.thumbnails?.medium?.url||snip.thumbnails?.default?.url||'',
+        url: `https://www.youtube.com/watch?v=${vid}`, description: snip.description||'',
+        publishedAt: (snip.publishedAt||'').substring(0,10), viewCount: s.viewCount||0, duration: s.duration||'' };
+    };
+
+    searchPool = sorted.map(toVideo);
+    refVideo   = searchPool[0] || null;
+    slotVideos = [searchPool[1] || null];
+
+    renderSlot(0, refVideo, 'ref');
+    renderSlot(1, slotVideos[0], 'add');
+    renderPool(searchPool);
+    $('searchQuery').value = query;
+
+    hideLoading('kwLoading', 'kwProgress', 'kwFill');
+    $('badge1').classList.add('done');
+    $('badge2').classList.add('done');
+    $('videosSection').style.display = 'block';
+    updateGenerateInfo();
+    setStepUI(2);
+
+  } catch(err) {
+    hideLoading('kwLoading', 'kwProgress', 'kwFill');
+    showAlert('kwAlert', 'error', `검색 오류: ${err.message}`);
+  }
+}
+
 /* ── Step 2: Search + auto-fill slots ────────────────────────────── */
 async function searchAndAdd() {
-  const ytKey  = $('ytApiKey').value.trim();
+  const ytKey  = YT_API_KEY;
   const query  = $('searchQuery').value.trim();
   const period = $('searchPeriod').value;
-  if (!ytKey)  return alert('YouTube API Key를 입력해주세요.');
   if (!query)  return alert('검색어를 입력해주세요.');
 
   clearAlert('searchAlert');
@@ -551,7 +652,7 @@ async function searchAndAdd() {
       publishedAfter = d.toISOString();
     }
 
-    let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&order=relevance&maxResults=9&relevanceLanguage=en&hl=en&key=${ytKey}`;
+    let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&order=relevance&maxResults=9&relevanceLanguage=en&hl=en&key=${YT_API_KEY}`;
     if (publishedAfter) url += `&publishedAfter=${encodeURIComponent(publishedAfter)}`;
 
     const res  = await fetch(url);
@@ -702,7 +803,7 @@ function updateGenerateInfo() {
 
 /* ── Fetch video metadata ─────────────────────────────────────────── */
 async function fetchVideoMeta(videoId, ytKey) {
-  const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${videoId}&key=${ytKey}`;
+  const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${videoId}&key=${YT_API_KEY}`;
   const res  = await fetch(url);
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
@@ -738,8 +839,7 @@ async function fetchTranscript(videoId) {
 
 /* ── List available Gemini models ────────────────────────────────── */
 async function listGeminiModels() {
-  const key = $('geminiApiKey').value.trim();
-  if (!key) return alert('먼저 Gemini API Key를 입력해주세요.');
+  const key = GEMINI_API_KEY;
   try {
     const res  = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${key}`);
     const data = await res.json();
@@ -761,9 +861,8 @@ async function listGeminiModels() {
 
 /* ── Generate lesson ──────────────────────────────────────────────── */
 async function generateLesson() {
-  const geminiKey = $('geminiApiKey').value.trim();
-  if (!geminiKey) return alert('Google Gemini API Key를 입력해주세요.');
-  if (!refVideo)  return alert('기본 영상을 먼저 분석해주세요.');
+  const geminiKey = GEMINI_API_KEY;
+  if (!refVideo)  return alert('기본 영상을 먼저 선택해주세요.');
 
   const allVideos = [refVideo, ...slotVideos.filter(Boolean)];
   const level     = $('levelSelect').value;
