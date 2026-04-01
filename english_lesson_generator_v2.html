@@ -262,8 +262,14 @@
       </div>
       <div class="form-group">
         <label>Google Gemini API Key</label>
-        <input type="password" id="geminiApiKey" placeholder="AIza..." autocomplete="off" />
-        <div class="hint">⚠️ 반드시 <a href="https://aistudio.google.com/app/apikey" target="_blank"><strong>AI Studio</strong></a>에서 발급 (Cloud Console 키 사용 불가) · 개인 Gmail 계정 필요</div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="password" id="geminiApiKey" placeholder="AIza..." autocomplete="off" style="flex:1;" />
+          <button type="button" id="geminiKeyToggle" onclick="toggleGeminiKey()"
+            style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;background:white;cursor:pointer;font-size:.9rem;white-space:nowrap;">
+            👁 보기
+          </button>
+        </div>
+        <div class="hint">발급받은 키를 붙여넣은 뒤 <strong>보기</strong> 버튼으로 확인하세요.</div>
       </div>
       <div class="form-group">
         <label>Gemini 모델</label>
@@ -734,6 +740,19 @@ async function fetchTranscript(videoId) {
     } catch(_) {}
   }
   return '';
+}
+
+/* ── Toggle Gemini API key visibility ────────────────────────────── */
+function toggleGeminiKey() {
+  const inp = $('geminiApiKey');
+  const btn = $('geminiKeyToggle');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    btn.textContent = '🙈 숨기기';
+  } else {
+    inp.type = 'password';
+    btn.textContent = '👁 보기';
+  }
 }
 
 /* ── List available Gemini models ────────────────────────────────── */
