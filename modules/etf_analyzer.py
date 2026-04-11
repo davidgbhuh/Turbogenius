@@ -49,69 +49,65 @@ def generate_etf_analysis(api_key: str, previous_portfolio: list | None = None) 
     prompt = f"""오늘 날짜: {today}
 {prev_section}
 글로벌 거시경제 환경을 분석하여 이번 주 ETF 투자 포트폴리오를 추천해주세요.
-마크다운 없이 아래 JSON 형식으로만 응답하세요. 각 문자열은 간결하게 작성하세요.
+각 텍스트 필드는 반드시 50자 이내로 작성하세요. rationale은 60자 이내.
+
+아래 JSON 구조를 채워 반환하세요:
 
 {{
-  "week_label": "2026년 00주차 (0월 0주)",
+  "week_label": "2026년 XX주차",
   "topic": {{
-    "title": "핵심 테마 제목 (20자 이내)",
-    "summary": "테마 배경 요약 (2문장)",
-    "key_points": ["포인트1", "포인트2", "포인트3"],
+    "title": "테마 제목(20자 이내)",
+    "summary": "요약(50자 이내)",
+    "key_points": ["포인트1(30자이내)", "포인트2(30자이내)", "포인트3(30자이내)"],
     "news_search_queries": [
-      {{"query": "영어 검색어1", "description": "한국어 설명"}},
-      {{"query": "영어 검색어2", "description": "한국어 설명"}},
-      {{"query": "영어 검색어3", "description": "한국어 설명"}}
+      {{"query": "english query 1", "description": "설명"}},
+      {{"query": "english query 2", "description": "설명"}},
+      {{"query": "english query 3", "description": "설명"}}
     ],
     "youtube_search_queries": [
-      {{"query": "영어 검색어1", "description": "한국어 설명"}},
-      {{"query": "영어 검색어2", "description": "한국어 설명"}}
+      {{"query": "english query 1", "description": "설명"}},
+      {{"query": "english query 2", "description": "설명"}}
     ]
   }},
   "portfolio": [
-    {{"ticker": "SPY", "name": "ETF명", "weight": 25.0, "category": "주식", "rationale": "선택이유 (1~2문장)", "risk_level": "낮음"}}
+    {{"ticker": "SPY", "name": "ETF명", "weight": 25.0, "category": "주식", "rationale": "이유(60자이내)", "risk_level": "낮음"}}
   ],
   "rebalancing": {{
-    "action": "유지 또는 소폭 조정 또는 전략 변경",
-    "changes": [
-      {{"ticker": "티커", "action": "증가 또는 감소 또는 신규 편입 또는 제거", "delta_weight": 0.0, "reason": "이유"}}
-    ],
-    "overall_comment": "전략 코멘트 (1~2문장)"
+    "action": "유지",
+    "changes": [{{"ticker": "티커", "action": "증가", "delta_weight": 5.0, "reason": "이유(40자이내)"}}],
+    "overall_comment": "코멘트(50자이내)"
   }},
   "market_outlook": {{
-    "risk_level": "낮음 또는 중간 또는 높음",
-    "sentiment": "강세 또는 중립 또는 약세",
-    "key_risks": ["리스크1", "리스크2"],
-    "opportunities": ["기회1", "기회2"]
+    "risk_level": "중간",
+    "sentiment": "중립",
+    "key_risks": ["리스크1(30자이내)", "리스크2(30자이내)"],
+    "opportunities": ["기회1(30자이내)", "기회2(30자이내)"]
   }}
 }}
 
-규칙: ETF 5~6개, 비중 합계 정확히 100.0, 미국 상장 ETF만 사용 (SPY QQQ TLT GLD IWM EEM XLK XLE XLF XLV SOXX HYG GLD SLV VNQ ICLN LIT CIBR EMB 등)"""
+ETF 5개, 비중 합계 100.0, 미국 상장 ETF만 사용."""
 
     message = client.messages.create(
         model=CLAUDE_MODEL,
-        max_tokens=4096,
+        max_tokens=8192,
         system=_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": prompt}],
+        messages=[
+            {"role": "user", "content": prompt},
+            {"role": "assistant", "content": "{"},  # prefill: 순수 JSON 시작 강제
+        ],
     )
 
-    raw = _clean_json(message.content[0].text)
+    # prefill로 시작한 "{" + 나머지 응답 합치기
+    raw = "{" + message.content[0].text
+    raw = _clean_json(raw)
 
-    # 응답이 잘린 경우 JSON 복구 시도
     try:
         data = json.loads(raw)
-    except json.JSONDecodeError:
-        # 잘린 JSON 끝에 닫는 괄호를 추가해서 복구 시도
-        for closing in ["}}}}}", "}}}}", "}}}", "}}", "}"]:
-            try:
-                data = json.loads(raw + closing)
-                break
-            except json.JSONDecodeError:
-                continue
-        else:
-            raise json.JSONDecodeError(
-                f"Claude 응답을 JSON으로 파싱할 수 없습니다. 응답 일부: {raw[:200]}",
-                raw, 0
-            )
+    except json.JSONDecodeError as e:
+        raise json.JSONDecodeError(
+            f"Claude 응답 파싱 실패 (응답 앞부분): {raw[:300]}",
+            raw, e.pos,
+        ) from e
 
     # Normalize weight sum to 100 if floating-point drift
     total = sum(e["weight"] for e in data.get("portfolio", []))
