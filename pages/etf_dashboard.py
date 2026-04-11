@@ -171,7 +171,7 @@ st.markdown("""
 
 with st.sidebar:
     st.title("🌐 ETF 대시보드")
-    st.caption("글로벌 트렌드 기반 주간 포트폴리오")
+    st.caption("글로벌 트렌드 기반 분기별 포트폴리오")
     st.divider()
 
     env_key = get_api_key()
@@ -187,8 +187,9 @@ with st.sidebar:
 
     history = load_history()
     if history:
-        labels = [h["week_label"] for h in history]
-        selected_label = st.selectbox("주차 선택", labels, index=0)
+        labels = [h.get("quarter_label") or h.get("week_label", f"분석 {i+1}")
+                  for i, h in enumerate(history)]
+        selected_label = st.selectbox("분기 선택", labels, index=0)
         selected_idx = labels.index(selected_label)
         view_data = history[selected_idx]
     else:
@@ -202,7 +203,7 @@ with st.sidebar:
             st.rerun()
 
     st.divider()
-    st.caption("ℹ️ ETF 시세는 yfinance 기준이며 최대 30분 지연될 수 있습니다.")
+    st.caption("ℹ️ ETF 시세는 KRX yfinance 기준이며 최대 30분 지연될 수 있습니다.")
 
 
 # ── Analysis trigger ──────────────────────────────────────────────────────────
@@ -216,15 +217,14 @@ if generate_btn:
 
     prev_portfolio = history[0]["portfolio"] if history else None
 
-    with st.spinner("Claude가 글로벌 트렌드를 분석 중입니다… (30~60초 소요)"):
+    with st.spinner("Claude가 분기 트렌드를 분석 중입니다… (30~60초 소요)"):
         try:
             result = generate_etf_analysis(api_key, prev_portfolio)
             result["generated_at"] = datetime.now().isoformat()
-            # Prepend (newest first)
             history.insert(0, result)
             save_history(history)
             view_data = result
-            st.success(f"분석 완료: {result.get('week_label', '')}")
+            st.success(f"분석 완료: {result.get('quarter_label', '')}")
         except Exception as e:
             st.error(f"분석 생성 실패: {e}")
             st.stop()
@@ -253,7 +253,8 @@ generated_at = view_data.get("generated_at", "")
 
 col_h1, col_h2 = st.columns([3, 1])
 with col_h1:
-    st.markdown(f"## 🌐 {view_data.get('week_label', 'ETF 포트폴리오 대시보드')}")
+    label = view_data.get("quarter_label") or view_data.get("week_label", "ETF 포트폴리오 대시보드")
+    st.markdown(f"## 🌐 {label}")
     if generated_at:
         ts = datetime.fromisoformat(generated_at).strftime("%Y-%m-%d %H:%M")
         st.caption(f"분석 생성: {ts}")
@@ -274,7 +275,7 @@ st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
 # ── Section 1: 금주의 Topic ───────────────────────────────────────────────────
 
-st.markdown('<div class="section-title">📰 금주의 글로벌 투자 테마</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">📰 이번 분기 글로벌 투자 테마</div>', unsafe_allow_html=True)
 
 st.markdown(
     f'<div class="card">'
@@ -388,7 +389,7 @@ st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
 # ── Section 4: 리밸런싱 추천 ─────────────────────────────────────────────────
 
-st.markdown('<div class="section-title">🔄 지난 주 대비 리밸런싱 추천</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">🔄 지난 분기 대비 리밸런싱 추천</div>', unsafe_allow_html=True)
 
 action_main = rebalancing.get("action", "—")
 overall_comment = rebalancing.get("overall_comment", "")
@@ -433,8 +434,8 @@ else:
     prev_exists = bool(load_history()[1:]) if len(load_history()) > 1 else False
     if not prev_exists:
         st.markdown(
-            '<div style="color:#888;font-size:0.9rem">지난 주 포트폴리오가 없어 비교 데이터가 없습니다. '
-            '다음 주 분석 시 리밸런싱 추천이 표시됩니다.</div>',
+            '<div style="color:#888;font-size:0.9rem">지난 분기 포트폴리오가 없어 비교 데이터가 없습니다. '
+            '다음 분기 분석 시 리밸런싱 추천이 표시됩니다.</div>',
             unsafe_allow_html=True,
         )
 
@@ -463,7 +464,7 @@ if portfolio:
             price = row.get("Price")
             perf_1w = row.get("1W (%)")
             color = perf_color(perf_1w)
-            price_str = f"${price:,.2f}" if price else "—"
+            price_str = f"₩{price:,.0f}" if price else "—"
             with col_m:
                 st.markdown(
                     f'<div class="metric-tile">'
@@ -489,7 +490,7 @@ if portfolio:
                 "티커": ticker,
                 "ETF명": etf_names_map.get(ticker, ticker),
                 "비중": f"{weight:.1f}%" if weight else "—",
-                "현재가 (USD)": f"${row['Price']:,.2f}" if row.get("Price") else "—",
+                "현재가 (KRW)": f"₩{row['Price']:,.0f}" if row.get("Price") else "—",
                 "1주일": fmt_perf(row.get("1W (%)")),
                 "1개월": fmt_perf(row.get("1M (%)")),
                 "3개월": fmt_perf(row.get("3M (%)")),
@@ -503,8 +504,8 @@ if portfolio:
         disp_df = pd.DataFrame(display_rows)
 
         # Render as styled HTML table
-        header_cols = ["티커", "ETF명", "비중", "현재가 (USD)", "1주일", "1개월", "3개월", "1년"]
-        raw_map = {"1주일": "_1w", "1개월": "_1m", "3개월": "_3m", "1년": "_1y"}
+        header_cols = ["티커", "ETF명", "비중", "현재가 (KRW)", "1주일", "1개월", "3개월", "1년"]
+        raw_map = {"1주일": "_1w", "1개월": "_1m", "3개월": "_3m", "1년": "_1y", "현재가 (KRW)": None}
 
         header_html = "".join(
             f'<th style="text-align:{"left" if c in ("티커","ETF명","비중") else "right"};'
@@ -519,7 +520,7 @@ if portfolio:
             for c in header_cols:
                 align = "left" if c in ("티커", "ETF명", "비중") else "right"
                 style = f'text-align:{align};padding:8px 12px;font-size:0.88rem;'
-                if c in raw_map:
+                if c in raw_map and raw_map[c] is not None:
                     raw_key = raw_map[c]
                     color = perf_color(r.get(raw_key))
                     style += f"color:{color};font-weight:600;"
