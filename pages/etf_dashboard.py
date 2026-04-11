@@ -37,8 +37,12 @@ def get_api_key() -> str:
 
 def load_history() -> list:
     if HISTORY_PATH.exists():
-        with open(HISTORY_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
+        try:
+            with open(HISTORY_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            # 파일이 깨진 경우 초기화
+            HISTORY_PATH.unlink(missing_ok=True)
     return []
 
 
@@ -221,9 +225,6 @@ if generate_btn:
             save_history(history)
             view_data = result
             st.success(f"분석 완료: {result.get('week_label', '')}")
-        except json.JSONDecodeError as e:
-            st.error(f"Claude 응답 파싱 오류: {e}")
-            st.stop()
         except Exception as e:
             st.error(f"분석 생성 실패: {e}")
             st.stop()
