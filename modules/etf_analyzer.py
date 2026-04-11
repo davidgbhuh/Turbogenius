@@ -48,73 +48,70 @@ def generate_etf_analysis(api_key: str, previous_portfolio: list | None = None) 
 
     prompt = f"""오늘 날짜: {today}
 {prev_section}
-글로벌 거시경제 환경을 분석하여 **이번 주 ETF 투자 포트폴리오**를 추천해주세요.
-
-아래 JSON 스키마를 정확히 따르세요. 마크다운 없이 순수 JSON만 반환하세요.
+글로벌 거시경제 환경을 분석하여 이번 주 ETF 투자 포트폴리오를 추천해주세요.
+마크다운 없이 아래 JSON 형식으로만 응답하세요. 각 문자열은 간결하게 작성하세요.
 
 {{
-  "week_label": "string  // 예: 2026년 15주차 (4월 2주)",
+  "week_label": "2026년 00주차 (0월 0주)",
   "topic": {{
-    "title": "string  // 이번 주 핵심 글로벌 투자 테마 (15자 내외)",
-    "summary": "string  // 테마 배경 설명 (3~4문장, 한국어)",
-    "key_points": ["string", "string", "string"],
+    "title": "핵심 테마 제목 (20자 이내)",
+    "summary": "테마 배경 요약 (2문장)",
+    "key_points": ["포인트1", "포인트2", "포인트3"],
     "news_search_queries": [
-      {{"query": "string  // 영어 Google News 검색어", "description": "string  // 한국어 설명"}},
-      {{"query": "string", "description": "string"}},
-      {{"query": "string", "description": "string"}}
+      {{"query": "영어 검색어1", "description": "한국어 설명"}},
+      {{"query": "영어 검색어2", "description": "한국어 설명"}},
+      {{"query": "영어 검색어3", "description": "한국어 설명"}}
     ],
     "youtube_search_queries": [
-      {{"query": "string  // 영어 YouTube 검색어", "description": "string  // 한국어 설명"}},
-      {{"query": "string", "description": "string"}}
+      {{"query": "영어 검색어1", "description": "한국어 설명"}},
+      {{"query": "영어 검색어2", "description": "한국어 설명"}}
     ]
   }},
   "portfolio": [
-    {{
-      "ticker": "string  // 미국 상장 ETF 티커 (예: SPY)",
-      "name": "string  // ETF 전체 이름",
-      "weight": 0.0,  // 비중 (%), 합계 100
-      "category": "string  // 주식/채권/원자재/리츠/테마",
-      "rationale": "string  // 포함 이유 (2~3문장)",
-      "risk_level": "string  // 낮음 | 중간 | 높음"
-    }}
+    {{"ticker": "SPY", "name": "ETF명", "weight": 25.0, "category": "주식", "rationale": "선택이유 (1~2문장)", "risk_level": "낮음"}}
   ],
   "rebalancing": {{
-    "action": "string  // 유지 | 소폭 조정 | 전략 변경",
+    "action": "유지 또는 소폭 조정 또는 전략 변경",
     "changes": [
-      {{
-        "ticker": "string",
-        "action": "string  // 증가 | 감소 | 신규 편입 | 제거",
-        "delta_weight": 0.0,  // 변경 비중 포인트 (양수/음수)
-        "reason": "string"
-      }}
+      {{"ticker": "티커", "action": "증가 또는 감소 또는 신규 편입 또는 제거", "delta_weight": 0.0, "reason": "이유"}}
     ],
-    "overall_comment": "string  // 전반적인 전략 코멘트 (2~3문장)"
+    "overall_comment": "전략 코멘트 (1~2문장)"
   }},
   "market_outlook": {{
-    "risk_level": "string  // 낮음 | 중간 | 높음",
-    "sentiment": "string  // 강세 | 중립 | 약세",
-    "key_risks": ["string", "string"],
-    "opportunities": ["string", "string"]
+    "risk_level": "낮음 또는 중간 또는 높음",
+    "sentiment": "강세 또는 중립 또는 약세",
+    "key_risks": ["리스크1", "리스크2"],
+    "opportunities": ["기회1", "기회2"]
   }}
 }}
 
-포트폴리오 구성 규칙:
-- ETF 수: 5~8개
-- 비중 합계: 정확히 100.0
-- 미국 상장 ETF만 사용 (SPY, QQQ, TLT, GLD, IWM, EEM, VGK, XLK, XLE, XLF, XLV,
-  XLU, SOXX, ARKK, HYG, LIT, ICLN, CIBR, VNQ, EMB, SHY, IEF, USO, SLV 등)
-- 지난 주 포트폴리오가 있을 경우 변경 이유를 rebalancing에 명확히 설명
-"""
+규칙: ETF 5~6개, 비중 합계 정확히 100.0, 미국 상장 ETF만 사용 (SPY QQQ TLT GLD IWM EEM XLK XLE XLF XLV SOXX HYG GLD SLV VNQ ICLN LIT CIBR EMB 등)"""
 
     message = client.messages.create(
         model=CLAUDE_MODEL,
-        max_tokens=3000,
+        max_tokens=4096,
         system=_SYSTEM_PROMPT,
         messages=[{"role": "user", "content": prompt}],
     )
 
     raw = _clean_json(message.content[0].text)
-    data = json.loads(raw)
+
+    # 응답이 잘린 경우 JSON 복구 시도
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        # 잘린 JSON 끝에 닫는 괄호를 추가해서 복구 시도
+        for closing in ["}}}}}", "}}}}", "}}}", "}}", "}"]:
+            try:
+                data = json.loads(raw + closing)
+                break
+            except json.JSONDecodeError:
+                continue
+        else:
+            raise json.JSONDecodeError(
+                f"Claude 응답을 JSON으로 파싱할 수 없습니다. 응답 일부: {raw[:200]}",
+                raw, 0
+            )
 
     # Normalize weight sum to 100 if floating-point drift
     total = sum(e["weight"] for e in data.get("portfolio", []))
