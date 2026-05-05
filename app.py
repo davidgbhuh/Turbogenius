@@ -1,4 +1,4 @@
-"""Turbogenius — 한국 주식 AI 분석기 (Streamlit 메인 앱)."""
+"""Turbogenius — 한국 주식 AI 분석기 + ETF 포트폴리오 대시보드 (Streamlit 메인 앱)."""
 
 import os
 import streamlit as st
