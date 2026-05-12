@@ -2,6 +2,151 @@
   {
     "quarter_label": "2026년 2분기 (4~6월)",
     "topic": {
+      "title": "AI 인프라 확장과 지정학 방어",
+      "summary": "2026년 2분기는 미국 연준의 금리 인하 기대감이 서서히 현실화되는 가운데, AI 인프라 투자 사이클이 하드웨어에서 소프트웨어·전력 인프라로 확대되고 있습니다. 동시에 중동·동유럽 지정학적 긴장이 지속되며 방산 및 안전자산(금) 수요가 높게 유지되고, 한국 반도체 업종은 HBM 수요 급증에 힘입어 실적 회복 모멘텀이 강화되고 있습니다.",
+      "key_points": [
+        "미 연준 금리 인하 사이클 진입 기대 → 성장주 및 장기채 수혜 가능성 확대",
+        "AI 반도체·HBM 수요 폭발적 성장으로 국내 반도체 업종 실적 개선 가속화",
+        "지정학적 리스크 지속 및 달러 약세 구간 → 금·방산 ETF 헤지 역할 유효"
+      ],
+      "news_search_queries": [
+        {
+          "query": "Fed rate cut 2026 outlook inflation",
+          "description": "2026년 미 연준 금리 인하 전망 및 인플레이션 동향"
+        },
+        {
+          "query": "HBM AI chip demand Korea semiconductor 2026",
+          "description": "HBM 및 AI 반도체 수요 증가와 한국 반도체 업황"
+        },
+        {
+          "query": "global defense spending geopolitical risk 2026",
+          "description": "글로벌 방위비 지출 확대 및 지정학적 리스크 현황"
+        }
+      ],
+      "youtube_search_queries": [
+        {
+          "query": "AI infrastructure investment semiconductor ETF 2026 strategy",
+          "description": "AI 인프라 투자 확대와 반도체 ETF 전략 분석"
+        },
+        {
+          "query": "gold ETF safe haven geopolitical risk portfolio 2026",
+          "description": "지정학 리스크 속 금 ETF 안전자산 역할과 포트폴리오 전략"
+        }
+      ]
+    },
+    "portfolio": [
+      {
+        "ticker": "091160",
+        "name": "KODEX 반도체",
+        "weight": 20,
+        "category": "테마",
+        "rationale": "HBM3E 양산 본격화와 AI 데이터센터향 메모리 수요 급증으로 국내 반도체 업종의 실적 모멘텀이 강화되고 있어 비중을 확대합니다.",
+        "risk_level": "높음"
+      },
+      {
+        "ticker": "485540",
+        "name": "KODEX 미국AI테크TOP10",
+        "weight": 15,
+        "category": "테마",
+        "rationale": "엔비디아·마이크로소프트 등 AI 핵심 빅테크 기업들의 실적 성장세가 지속되며 AI 인프라 투자 사이클 수혜가 집중되고 있습니다.",
+        "risk_level": "높음"
+      },
+      {
+        "ticker": "098560",
+        "name": "TIGER 방산",
+        "weight": 15,
+        "category": "테마",
+        "rationale": "중동·동유럽 지정학 리스크 장기화로 글로벌 방위비 지출이 확대되고, 한국 방산 수출 모멘텀이 2분기에도 유효합니다.",
+        "risk_level": "중간"
+      },
+      {
+        "ticker": "069500",
+        "name": "KODEX 200",
+        "weight": 13,
+        "category": "국내주식",
+        "rationale": "코스피 대형주 중심의 분산 투자로 포트폴리오 안정성을 확보하며, 반도체·금융 업종 회복 수혜를 함께 누릴 수 있습니다.",
+        "risk_level": "중간"
+      },
+      {
+        "ticker": "305080",
+        "name": "TIGER 미국채10년선물",
+        "weight": 12,
+        "category": "채권",
+        "rationale": "연준 금리 인하 기대감 확대 구간에서 미국 장기채 가격 상승 수혜가 기대되며, 위험자산 변동성 헤지 역할도 겸합니다.",
+        "risk_level": "낮음"
+      },
+      {
+        "ticker": "132030",
+        "name": "KODEX 골드선물(H)",
+        "weight": 15,
+        "category": "원자재",
+        "rationale": "달러 약세 전환 가능성과 지정학 리스크 지속으로 금 가격 상승 기조가 유지되어 안전자산 헤지 비중을 유지합니다.",
+        "risk_level": "중간"
+      },
+      {
+        "ticker": "459580",
+        "name": "KODEX CD금리액티브(합성)",
+        "weight": 10,
+        "category": "채권",
+        "rationale": "단기 유동성 확보 및 시장 변동성 대비 현금성 자산으로 활용하며, 기존 단기채권PLUS 대비 CD 금리 연동으로 수익률이 소폭 우위입니다.",
+        "risk_level": "낮음"
+      }
+    ],
+    "rebalancing": {
+      "action": "소폭 조정",
+      "overall_comment": "전반적인 포트폴리오 방향성(AI·반도체·방산·금)은 유지하되, 금리 인하 기대감 반영을 위해 단기채를 미국 장기채로 교체하고, AI&로봇 ETF 비중을 반도체 ETF로 통합하여 집중도를 높였습니다. 유동성 쿠션 역할은 CD금리 ETF로 대체합니다.",
+      "changes": [
+        {
+          "ticker": "091160",
+          "action": "증가",
+          "delta_weight": 2,
+          "reason": "HBM 수요 급증과 2분기 반도체 실적 개선 기대감으로 비중을 18%→20%로 확대"
+        },
+        {
+          "ticker": "411570",
+          "action": "제거",
+          "delta_weight": -12,
+          "reason": "AI&로봇 테마의 핵심 수혜는 반도체 하드웨어 단계에 집중되어 있어, 중복 투자 해소를 위해 KODEX 반도체 ETF로 통합"
+        },
+        {
+          "ticker": "153130",
+          "action": "제거",
+          "delta_weight": -12,
+          "reason": "금리 인하 사이클 진입 기대 구간에서 단기채권 수익률 메리트 감소, 듀레이션 확대 전략으로 전환"
+        },
+        {
+          "ticker": "305080",
+          "action": "신규 편입",
+          "delta_weight": 12,
+          "reason": "연준 금리 인하 기대 반영 및 위험자산 헤지 목적으로 미국 장기채 신규 편입 (듀레이션 확대)"
+        },
+        {
+          "ticker": "459580",
+          "action": "신규 편입",
+          "delta_weight": 10,
+          "reason": "시장 변동성 확대 구간 유동성 확보를 위해 CD금리 연동 ETF를 단기채권PLUS 대체재로 신규 편입"
+        }
+      ]
+    },
+    "market_outlook": {
+      "risk_level": "중간",
+      "sentiment": "중립",
+      "key_risks": [
+        "미국 경기 침체 우려 재부상 시 위험자산 동반 급락 가능성",
+        "중동·우크라이나 분쟁 확전에 따른 에너지·공급망 리스크",
+        "중국 경기 둔화 지속 및 미·중 무역 갈등 재점화 리스크"
+      ],
+      "opportunities": [
+        "연준 금리 인하 사이클 본격화 시 성장주·장기채 동반 상승 기회",
+        "AI 반도체(HBM) 슈퍼사이클 지속으로 국내 반도체 업종 밸류에이션 재평가",
+        "글로벌 방위비 증가 트렌드 장기화로 한국 방산주 수출 모멘텀 지속"
+      ]
+    },
+    "generated_at": "2026-05-12T13:16:13.676625"
+  },
+  {
+    "quarter_label": "2026년 2분기 (4~6월)",
+    "topic": {
       "title": "AI 패권 경쟁과 안전자산 재편",
       "summary": "2026년 2분기는 미-중 AI 패권 경쟁이 심화되는 가운데, 미국의 대중 반도체 수출 규제 강화와 트럼프 행정부의 관세 불확실성이 글로벌 공급망을 흔들고 있습니다. 반면 NATO 회원국의 국방비 증액 요구와 지정학적 긴장 지속으로 방산 섹터는 구조적 강세를 이어가며, 금·달러 단기채 등 안전자산 수요도 동반 상승하고 있습니다. 국내에서는 반도체 사이클 회복 기대감과 AI 인프라 투자 확대가 코스피 상단을 지지하는 핵심 동력으로 작용 중입니다.",
       "key_points": [
