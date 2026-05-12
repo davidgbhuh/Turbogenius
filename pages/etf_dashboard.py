@@ -215,17 +215,58 @@ with st.sidebar:
     st.divider()
     generate_btn = st.button("새 분석 생성", type="primary", use_container_width=True)
 
-    # ── 이력 내보내기 (JSON 다운로드) ─────────────────────────────────────────
+    # ── 이력 내보내기 / 보내기 ────────────────────────────────────────────────
     if history:
+        history_json = json.dumps(history, ensure_ascii=False, indent=2)
+        filename = f"etf_history_{datetime.now().strftime('%Y%m%d')}.json"
+
+        # 파일 저장 (iOS: 저장 후 공유 시트 → 메일·카카오 등으로 전송 가능)
         st.download_button(
-            label="📥 이력 내보내기 (.json)",
-            data=json.dumps(history, ensure_ascii=False, indent=2),
-            file_name=f"etf_history_{datetime.now().strftime('%Y%m%d')}.json",
+            label="📥 이력 저장 (파일)",
+            data=history_json,
+            file_name=filename,
             mime="application/json",
             use_container_width=True,
-            help="분석 이력을 기기에 저장합니다. 앱 재시작 후 위 업로더로 복원하세요.",
         )
-        if st.button("이력 전체 삭제", use_container_width=True):
+
+        # 이메일로 직접 보내기
+        st.markdown("**📨 이력 이메일로 보내기**")
+        email_to = st.text_input(
+            "받는 이메일 주소",
+            placeholder="example@email.com",
+            label_visibility="collapsed",
+        )
+        if email_to:
+            latest = history[0]
+            qlabel = latest.get("quarter_label", "")
+            topic_title = latest.get("topic", {}).get("title", "")
+            pf_lines = "\n".join(
+                f"  {e['ticker']} {e.get('name','')} {e['weight']}%"
+                for e in latest.get("portfolio", [])
+            )
+            body = (
+                f"[ETF 포트폴리오 이력]\n\n"
+                f"분기: {qlabel}\n"
+                f"테마: {topic_title}\n\n"
+                f"포트폴리오:\n{pf_lines}\n\n"
+                f"전체 이력(JSON)은 첨부파일을 확인하세요.\n"
+                f"(아래에서 파일 저장 후 첨부)"
+            )
+            subject = urllib.parse.quote(f"ETF 포트폴리오 이력 - {qlabel}")
+            body_enc = urllib.parse.quote(body)
+            mailto_url = f"mailto:{email_to}?subject={subject}&body={body_enc}"
+            st.markdown(
+                f'<a href="{mailto_url}" target="_blank" '
+                f'style="display:block;text-align:center;background:#FF9500;'
+                f'color:#fff;border-radius:8px;padding:10px;'
+                f'font-weight:700;text-decoration:none;margin-top:6px">'
+                f'📨 이메일 앱으로 보내기</a>',
+                unsafe_allow_html=True,
+            )
+            st.caption("💡 이메일 앱이 열리면 저장한 JSON 파일을 첨부해서 전송하세요.")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🗑 이력 전체 삭제", use_container_width=True):
             save_history([])
             st.rerun()
 
