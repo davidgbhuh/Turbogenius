@@ -64,7 +64,12 @@ def get_daily_prices(
         if df.empty:
             break
         frames.append(df)
-        next_end = df["date"].min() - timedelta(days=1)
+        oldest = df["date"].min()
+        # pandas Timestamp 를 datetime.date 로 정규화 — pandas 2.x 는
+        # Timestamp 와 date 의 직접 비교를 TypeError 로 거부합니다.
+        if hasattr(oldest, "date"):
+            oldest = oldest.date()
+        next_end = oldest - timedelta(days=1)
         if next_end >= chunk_end:
             break
         chunk_end = next_end

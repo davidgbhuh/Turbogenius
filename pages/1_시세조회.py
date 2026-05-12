@@ -35,7 +35,11 @@ m3.metric("고가 / 저가", f"{snap['high']:,.0f} / {snap['low']:,.0f}")
 m4.metric("거래량", f"{snap['volume']:,.0f}")
 
 # 차트
-df = fetch_daily(code, start, end)
+try:
+    df = fetch_daily(code, start, end)
+except Exception as e:  # noqa: BLE001
+    st.error(f"기간별 시세 조회 실패: {e}")
+    st.stop()
 if df.empty:
     st.info("선택한 기간의 시세 데이터가 없습니다.")
     st.stop()

@@ -31,7 +31,11 @@ if len(codes) < 1:
     st.info("ETF를 1개 이상 선택하세요.")
     st.stop()
 
-panel = fetch_close_panel(codes, start, end)
+try:
+    panel = fetch_close_panel(codes, start, end)
+except Exception as e:  # noqa: BLE001
+    st.error(f"기간별 시세 조회 실패: {e}")
+    st.stop()
 if panel.empty:
     st.info("선택한 기간의 데이터가 부족합니다.")
     st.stop()
