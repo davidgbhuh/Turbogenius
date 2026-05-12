@@ -23,7 +23,11 @@ with col_range:
 with col_rf:
     risk_free = st.number_input("무위험 수익률", 0.0, 0.2, 0.03, 0.005, format="%.3f")
 
-df = fetch_daily(code, start, end)
+try:
+    df = fetch_daily(code, start, end)
+except Exception as e:  # noqa: BLE001
+    st.error(f"기간별 시세 조회 실패: {e}")
+    st.stop()
 if df.empty or len(df) < 2:
     st.info("선택한 기간의 데이터가 부족합니다.")
     st.stop()

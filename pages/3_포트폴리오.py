@@ -53,7 +53,11 @@ if total_w == 0:
     st.stop()
 st.caption(f"비중 합계: {total_w:.2f} (자동 정규화됩니다)")
 
-panel = fetch_close_panel(codes, start, end)
+try:
+    panel = fetch_close_panel(codes, start, end)
+except Exception as e:  # noqa: BLE001
+    st.error(f"기간별 시세 조회 실패: {e}")
+    st.stop()
 if panel.empty:
     st.info("선택한 기간의 데이터가 부족합니다.")
     st.stop()
