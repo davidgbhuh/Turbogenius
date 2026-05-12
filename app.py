@@ -11,6 +11,8 @@ import plotly.graph_objects as go
 import streamlit as st
 from dotenv import load_dotenv
 
+from modules.github_storage import load_from_github, save_to_github, is_configured
+
 load_dotenv()
 
 # ── 공통 유틸 ─────────────────────────────────────────────────────────────────
@@ -34,6 +36,17 @@ def get_api_key() -> str:
 
 
 def load_history() -> list:
+    """GitHub 우선 → 로컬 파일 순으로 이력을 불러옵니다."""
+    # GitHub 자동 불러오기 (토큰 설정 시)
+    if is_configured() and "gh_sha" not in st.session_state:
+        gh_history, sha = load_from_github()
+        if gh_history:
+            st.session_state["gh_sha"] = sha
+            save_history_local(gh_history)  # 로컬에도 캐시
+            return gh_history
+        st.session_state["gh_sha"] = sha  # None 이어도 기록
+
+    # 로컬 파일 fallback
     if HISTORY_PATH.exists():
         try:
             with open(HISTORY_PATH, "r", encoding="utf-8") as f:
@@ -43,10 +56,20 @@ def load_history() -> list:
     return []
 
 
-def save_history(history: list) -> None:
+def save_history_local(history: list) -> None:
     HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(HISTORY_PATH, "w", encoding="utf-8") as f:
         json.dump(history, f, ensure_ascii=False, indent=2)
+
+
+def save_history(history: list) -> None:
+    """로컬 저장 + GitHub 자동 업로드 (토큰 설정 시)."""
+    save_history_local(history)
+    if is_configured():
+        sha = st.session_state.get("gh_sha")
+        new_sha = save_to_github(history, sha)
+        if new_sha:
+            st.session_state["gh_sha"] = new_sha
 
 
 def perf_color(val) -> str:
@@ -224,8 +247,12 @@ with st.sidebar:
             st.rerun()
 
     st.divider()
+    if is_configured():
+        st.caption("☁️ GitHub 자동 저장 **활성화** — 이력이 영구 보존됩니다.")
+    else:
+        st.caption("⚠️ GitHub Token 미설정 — 앱 재시작 시 이력이 초기화됩니다.")
+        st.caption("💾 Streamlit Cloud Secrets에 `GITHUB_TOKEN`을 추가하면 자동 저장됩니다.")
     st.caption("ℹ️ ETF 시세는 KRX yfinance 기준이며 최대 30분 지연될 수 있습니다.")
-    st.caption("💾 분석 후 **이력 저장**으로 백업하세요. 앱 재시작 시 초기화됩니다.")
 
 
 # ── Analysis trigger ──────────────────────────────────────────────────────────
