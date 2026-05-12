@@ -20,10 +20,26 @@ def load_etf_list() -> pd.DataFrame:
     return pd.read_csv(DATA_DIR / "etf_list.csv", dtype={"code": str})
 
 
+def _secret(name: str) -> str | None:
+    """Streamlit Cloud의 st.secrets 와 OS 환경변수 둘 다에서 시크릿을 찾습니다."""
+    try:
+        if name in st.secrets:
+            return str(st.secrets[name])
+    except Exception:  # noqa: BLE001  # secrets.toml이 없으면 접근 자체가 throw 됨
+        pass
+    import os
+
+    return os.getenv(name)
+
+
 @st.cache_resource(show_spinner=False)
 def get_client() -> KISClient | None:
     try:
-        return KISClient()
+        return KISClient(
+            app_key=_secret("KIS_APP_KEY"),
+            app_secret=_secret("KIS_APP_SECRET"),
+            env=_secret("KIS_ENV"),
+        )
     except KISError as e:
         st.session_state["_kis_error"] = str(e)
         return None
@@ -59,7 +75,8 @@ def require_client() -> KISClient | None:
     client = get_client()
     if client is None:
         st.error(
-            "KIS API 자격증명이 없습니다. `.env` 파일에 `KIS_APP_KEY` / `KIS_APP_SECRET` 를 설정한 뒤 앱을 다시 시작하세요."
+            "KIS API 자격증명이 없습니다. 로컬에서는 `.env`, Streamlit Cloud에서는 앱 설정 > "
+            "**Secrets** 에 `KIS_APP_KEY` / `KIS_APP_SECRET` 를 추가한 뒤 다시 실행하세요."
         )
         err = st.session_state.get("_kis_error")
         if err:

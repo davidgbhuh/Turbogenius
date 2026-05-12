@@ -13,8 +13,9 @@ st.caption("한국투자증권 OpenAPI를 사용한 국내 ETF 시세·수익률
 client = get_client()
 if client is None:
     st.warning(
-        "KIS API 자격증명이 설정되지 않았습니다. 프로젝트 루트의 `.env.example` 을 참고해 `.env` 를 만든 뒤 "
-        "`KIS_APP_KEY`, `KIS_APP_SECRET` 을 입력하고 앱을 다시 시작하세요."
+        "KIS API 자격증명이 설정되지 않았습니다.\n\n"
+        "- **로컬 실행**: 루트의 `.env.example` 을 복사해 `.env` 를 만들고 `KIS_APP_KEY`, `KIS_APP_SECRET` 입력\n"
+        "- **Streamlit Cloud**: 앱 대시보드 → ⋮ → **Settings → Secrets** 에 동일한 키를 TOML 형식으로 입력"
     )
     err = st.session_state.get("_kis_error")
     if err:
