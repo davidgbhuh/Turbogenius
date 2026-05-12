@@ -252,7 +252,7 @@ with st.sidebar:
     else:
         st.caption("⚠️ GitHub Token 미설정 — 앱 재시작 시 이력이 초기화됩니다.")
         st.caption("💾 Streamlit Cloud Secrets에 `GITHUB_TOKEN`을 추가하면 자동 저장됩니다.")
-    st.caption("ℹ️ ETF 시세는 KRX yfinance 기준이며 최대 30분 지연될 수 있습니다.")
+    st.caption("ℹ️ 현재가는 KRX 공식 API 기준 (최대 1시간 캐시), 수익률은 yfinance 기준입니다.")
 
 
 # ── Analysis trigger ──────────────────────────────────────────────────────────
@@ -463,7 +463,14 @@ st.markdown('<div class="section-title">📊 ETF 시세 & 퍼포먼스</div>', u
 
 if portfolio:
     tickers_fetch = tuple(e["ticker"] for e in portfolio)
+    # AI 이름 기본, KRX 공식 이름으로 덮어쓰기
     etf_names_map = {e["ticker"]: e.get("name", e["ticker"]) for e in portfolio}
+    try:
+        from modules.krx_data import get_name_map as _krx_name_map
+        _krx = _krx_name_map()
+        etf_names_map.update({k: v for k, v in _krx.items() if k in etf_names_map})
+    except Exception:
+        pass
 
     with st.spinner("시세 데이터 로딩 중…"):
         from modules.etf_fetcher import fetch_etf_performance
