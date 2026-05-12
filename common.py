@@ -20,6 +20,20 @@ def load_etf_list() -> pd.DataFrame:
     return pd.read_csv(DATA_DIR / "etf_list.csv", dtype={"code": str})
 
 
+@st.cache_data(show_spinner=False)
+def etf_name_map() -> dict[str, str]:
+    df = load_etf_list()
+    return dict(zip(df["code"], df["name"]))
+
+
+@st.cache_data(show_spinner=False)
+def etf_asset_class_map() -> dict[str, str]:
+    df = load_etf_list()
+    if "asset_class" not in df.columns:
+        return {}
+    return dict(zip(df["code"], df["asset_class"]))
+
+
 def _secret(name: str) -> str | None:
     """Streamlit Cloud의 st.secrets 와 OS 환경변수 둘 다에서 시크릿을 찾습니다."""
     try:

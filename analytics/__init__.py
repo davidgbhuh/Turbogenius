@@ -9,6 +9,7 @@ from .returns import (
     summary_metrics,
 )
 from .portfolio import portfolio_value, portfolio_metrics
+from .rebalancing import aggregate_by_asset_class, build_rebalance_table
 
 __all__ = [
     "cumulative_returns",
@@ -21,4 +22,6 @@ __all__ = [
     "summary_metrics",
     "portfolio_value",
     "portfolio_metrics",
+    "aggregate_by_asset_class",
+    "build_rebalance_table",
 ]
