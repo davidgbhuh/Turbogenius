@@ -474,14 +474,24 @@ if portfolio:
     else:
         cols_m = st.columns(len(perf_df))
         for col_m, (_, row) in zip(cols_m, perf_df.iterrows()):
+            ticker = row["Ticker"]
             price = row.get("Price")
             perf_1w = row.get("1W (%)")
             color = perf_color(perf_1w)
-            price_str = f"₩{price:,.0f}" if price else "—"
+            etf_name = etf_names_map.get(ticker, "")
+            # nan/None 모두 처리
+            try:
+                price_str = f"₩{float(price):,.0f}" if price is not None else "—"
+                if price_str == "₩nan":
+                    price_str = "—"
+            except Exception:
+                price_str = "—"
             with col_m:
                 st.markdown(
                     f'<div class="metric-tile">'
-                    f'<div class="metric-label">{row["Ticker"]}</div>'
+                    f'<div class="metric-label" style="font-weight:700;color:#fafafa">{ticker}</div>'
+                    f'<div class="metric-label" style="font-size:0.72rem;margin-bottom:6px;white-space:nowrap;'
+                    f'overflow:hidden;text-overflow:ellipsis">{etf_name}</div>'
                     f'<div class="metric-value">{price_str}</div>'
                     f'<div class="metric-sub" style="color:{color}">{fmt_perf(perf_1w)} (1W)</div>'
                     f'</div>',
@@ -500,7 +510,11 @@ if portfolio:
                 "티커": ticker,
                 "ETF명": etf_names_map.get(ticker, ticker),
                 "비중": f"{weight:.1f}%" if weight else "—",
-                "현재가 (KRW)": f"₩{row['Price']:,.0f}" if row.get("Price") else "—",
+                "현재가 (KRW)": (
+                    f"₩{float(row['Price']):,.0f}"
+                    if row.get("Price") is not None and str(row['Price']) != "nan"
+                    else "—"
+                ),
                 "1주일": fmt_perf(row.get("1W (%)")),
                 "1개월": fmt_perf(row.get("1M (%)")),
                 "3개월": fmt_perf(row.get("3M (%)")),
