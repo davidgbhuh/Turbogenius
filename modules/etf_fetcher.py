@@ -1,18 +1,17 @@
-"""한국 ETF 시세 및 퍼포먼스 데이터 조회.
+"""한국 ETF 시세 및 기간별 수익률 조회.
 
-현재가: KRX 공공 API (krx_data.py)
-기간별 수익률: yfinance (KRX 데이터 없는 경우 fallback)
+1순위: KRX 공공 API (krx_data.py) — 현재가 + 1W/1M/3M/1Y 수익률
+2순위: yfinance — KRX 데이터 조회 실패 시 fallback
 """
 
 import streamlit as st
 import yfinance as yf
 import pandas as pd
 
-from modules.krx_data import get_price_map
+from modules.krx_data import fetch_etf_performance_krx
 
 
 def _to_yf_ticker(ticker: str) -> str:
-    """KRX 6자리 코드를 yfinance 티커로 변환 (예: 069500 → 069500.KS)."""
     ticker = ticker.strip()
     if "." not in ticker and ticker.isdigit():
         return f"{ticker}.KS"
@@ -20,7 +19,6 @@ def _to_yf_ticker(ticker: str) -> str:
 
 
 def _fetch_yf_close(yf_tickers: list[str]) -> pd.DataFrame:
-    """yfinance로 1년치 종가 데이터를 가져온다. 실패 시 빈 DataFrame."""
     try:
         raw = yf.download(
             yf_tickers,
@@ -33,50 +31,26 @@ def _fetch_yf_close(yf_tickers: list[str]) -> pd.DataFrame:
             return pd.DataFrame()
         if isinstance(raw.columns, pd.MultiIndex):
             return raw["Close"]
-        # 단일 티커
         return raw[["Close"]].rename(columns={"Close": yf_tickers[0]})
     except Exception:
         return pd.DataFrame()
 
 
-@st.cache_data(ttl=1800)
-def fetch_etf_performance(tickers: tuple) -> pd.DataFrame:
-    """KRX ETF 티커 목록의 현재가 및 기간별 수익률을 반환합니다.
-
-    현재가: KRX API 우선, 없으면 yfinance 최신가.
-    수익률(1W/1M/3M/1Y): yfinance 일별 종가 기반.
-
-    Args:
-        tickers: ETF 티커 튜플 (6자리 코드).
-
-    Returns:
-        DataFrame — 컬럼: Ticker, Price, 1W (%), 1M (%), 3M (%), 1Y (%)
-    """
-    if not tickers:
-        return pd.DataFrame()
-
-    # KRX 현재가
-    krx_prices = get_price_map()
-
-    # yfinance 수익률 계산
+def _yf_performance(tickers: tuple) -> pd.DataFrame:
+    """yfinance로 현재가 + 수익률 계산 (KRX 실패 시 fallback)."""
     yf_tickers = [_to_yf_ticker(t) for t in tickers]
     close = _fetch_yf_close(yf_tickers)
 
     results = []
     for orig, yf_t in zip(tickers, yf_tickers):
-        # 현재가: KRX 우선
-        krx_price = krx_prices.get(orig)
-
         if not close.empty and yf_t in close.columns:
             prices = close[yf_t].dropna()
         else:
             prices = pd.Series(dtype=float)
 
-        # yfinance 현재가 (KRX 없을 때 fallback)
-        yf_price = float(prices.iloc[-1]) if not prices.empty else None
-        current_price = krx_price if krx_price else yf_price
+        current = float(prices.iloc[-1]) if not prices.empty else None
 
-        def ret(n: int):
+        def ret(n: int) -> float | None:
             if len(prices) >= n + 1:
                 base = float(prices.iloc[-(n + 1)])
                 last = float(prices.iloc[-1])
@@ -85,13 +59,12 @@ def fetch_etf_performance(tickers: tuple) -> pd.DataFrame:
 
         perf_1y = ret(252)
         if perf_1y is None and len(prices) >= 2:
-            base = float(prices.iloc[0])
-            last = float(prices.iloc[-1])
+            base, last = float(prices.iloc[0]), float(prices.iloc[-1])
             perf_1y = round((last / base - 1) * 100, 2) if base else None
 
         results.append({
             "Ticker":  orig,
-            "Price":   current_price,
+            "Price":   current,
             "1W (%)":  ret(5),
             "1M (%)":  ret(21),
             "3M (%)":  ret(63),
@@ -101,9 +74,41 @@ def fetch_etf_performance(tickers: tuple) -> pd.DataFrame:
     return pd.DataFrame(results)
 
 
-def _empty_row(ticker: str) -> dict:
-    return {
-        "Ticker": ticker, "Price": None,
-        "1W (%)": None, "1M (%)": None,
-        "3M (%)": None, "1Y (%)": None,
-    }
+@st.cache_data(ttl=1800)
+def fetch_etf_performance(tickers: tuple) -> pd.DataFrame:
+    """KRX ETF 티커 목록의 현재가 및 기간별 수익률을 반환합니다.
+
+    KRX API 우선 사용. KRX에서 데이터를 가져오지 못한 종목은
+    yfinance로 보완합니다.
+
+    Args:
+        tickers: 6자리 KRX 종목코드 튜플.
+
+    Returns:
+        DataFrame — Ticker, Price, 1W (%), 1M (%), 3M (%), 1Y (%)
+    """
+    if not tickers:
+        return pd.DataFrame()
+
+    # 1차: KRX API
+    try:
+        krx_df = fetch_etf_performance_krx(tickers)
+    except Exception:
+        krx_df = pd.DataFrame()
+
+    # KRX에서 현재가가 하나도 없으면 yfinance로 전환
+    if krx_df.empty or krx_df["Price"].isna().all():
+        return _yf_performance(tickers)
+
+    # KRX에서 일부 종목만 누락된 경우: yfinance로 해당 종목 보완
+    missing = krx_df[krx_df["Price"].isna()]["Ticker"].tolist()
+    if missing:
+        yf_df = _yf_performance(tuple(missing))
+        if not yf_df.empty:
+            yf_map = yf_df.set_index("Ticker").to_dict("index")
+            for i, row in krx_df.iterrows():
+                if row["Ticker"] in yf_map:
+                    for col in ["Price", "1W (%)", "1M (%)", "3M (%)", "1Y (%)"]:
+                        krx_df.at[i, col] = yf_map[row["Ticker"]].get(col)
+
+    return krx_df
