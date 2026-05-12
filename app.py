@@ -12,6 +12,13 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from modules.github_storage import load_from_github, save_to_github, is_configured
+from modules.kis_api import (
+    is_configured as kis_is_configured,
+    get_investor_flow,
+    get_etf_components,
+    get_etf_nav_trend,
+    get_current_price,
+)
 
 load_dotenv()
 
@@ -230,7 +237,11 @@ with st.sidebar:
     else:
         st.caption("⚠️ GitHub Token 미설정 — 앱 재시작 시 이력이 초기화됩니다.")
         st.caption("💾 Streamlit Cloud Secrets에 `GITHUB_TOKEN`을 추가하면 자동 저장됩니다.")
-    st.caption("ℹ️ 현재가는 KRX 공식 API 기준 (최대 1시간 캐시), 수익률은 yfinance 기준입니다.")
+    if kis_is_configured():
+        st.caption("📡 KIS OpenAPI 연결 — 실시간 시세·수급·구성종목·NAV 분석 활성화.")
+    else:
+        st.caption("ℹ️ KIS API 미설정 — Secrets에 `KIS_APP_KEY` / `KIS_APP_SECRET` 추가 시 심층 분석 활성화.")
+    st.caption("📊 시세는 KRX 공식 API 1순위, KIS OpenAPI 보완 (캐시 30분).")
 
 
 # ── Analysis trigger ──────────────────────────────────────────────────────────
@@ -574,6 +585,235 @@ if portfolio:
                 st.plotly_chart(fig_bar, use_container_width=True)
 
 st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
+# ── Section 5.5: KIS 기반 개별 ETF 심층 분석 ─────────────────────────────────
+
+if portfolio and kis_is_configured():
+    st.markdown(
+        '<div class="section-title">🔬 개별 ETF 심층 분석 '
+        '<span style="font-size:0.7rem;color:#888;font-weight:400">(KIS OpenAPI)</span></div>',
+        unsafe_allow_html=True,
+    )
+
+    sel_options = [f"{e['ticker']} | {e.get('name', '')}" for e in portfolio]
+    sel_choice  = st.selectbox("분석할 ETF 선택", sel_options, key="kis_etf_select")
+    sel_ticker  = sel_choice.split(" | ")[0]
+
+    tab_flow, tab_comp, tab_nav = st.tabs([
+        "📈 외국인·기관 수급",
+        "📋 구성종목 (PDF)",
+        "💎 NAV 추이 / 괴리율",
+    ])
+
+    # ── 외국인·기관 순매수 ───────────────────────────────────────────────────
+    with tab_flow:
+        with st.spinner("수급 데이터 조회 중…"):
+            flow_df = get_investor_flow(sel_ticker)
+
+        if flow_df.empty:
+            st.info("수급 데이터를 가져오지 못했습니다. (KIS 모의투자 미지원 또는 비정상 종목)")
+        else:
+            recent = flow_df.tail(20).copy()
+            sum_fgn = int(recent["foreign_net"].sum())
+            sum_org = int(recent["institutional_net"].sum())
+            sum_ind = int(recent["individual_net"].sum())
+
+            c1, c2, c3 = st.columns(3)
+            for col, label, val, neg_color in (
+                (c1, "외국인 (20일 누적)",  sum_fgn, "#FF3B30"),
+                (c2, "기관 (20일 누적)",    sum_org, "#FF3B30"),
+                (c3, "개인 (20일 누적)",    sum_ind, "#FF3B30"),
+            ):
+                color = "#34C759" if val >= 0 else neg_color
+                sign  = "▲" if val >= 0 else "▼"
+                with col:
+                    st.markdown(
+                        f'<div class="metric-tile">'
+                        f'<div class="metric-label">{label}</div>'
+                        f'<div class="metric-value" style="color:{color}">{sign} {abs(val):,}주</div>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            fig_flow = go.Figure()
+            for col, name, color in (
+                ("foreign_net",       "외국인", "#FF9500"),
+                ("institutional_net", "기관",   "#007AFF"),
+                ("individual_net",    "개인",   "#888888"),
+            ):
+                fig_flow.add_trace(go.Bar(
+                    x=recent["date"], y=recent[col],
+                    name=name, marker_color=color,
+                    hovertemplate=f"{name}: %{{y:,}}주<extra></extra>",
+                ))
+            fig_flow.update_layout(
+                height=320, barmode="group",
+                margin=dict(l=10, r=10, t=10, b=10),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#fafafa"),
+                xaxis=dict(gridcolor="#1e2130"),
+                yaxis=dict(title="순매수 (주)", gridcolor="#1e2130", zeroline=True, zerolinecolor="#444"),
+                legend=dict(orientation="h", y=1.1),
+            )
+            st.plotly_chart(fig_flow, use_container_width=True)
+
+    # ── ETF 구성종목 ─────────────────────────────────────────────────────────
+    with tab_comp:
+        with st.spinner("구성종목 PDF 조회 중…"):
+            comp_df = get_etf_components(sel_ticker)
+
+        if comp_df.empty:
+            st.info("구성종목 데이터를 가져오지 못했습니다.")
+        else:
+            top10 = comp_df.head(10)
+            total_weight = comp_df["weight"].sum()
+
+            st.markdown(
+                f'<div class="card-sm" style="margin-bottom:14px">'
+                f'<span style="color:#888">총 구성종목: </span>'
+                f'<span style="color:#fafafa;font-weight:700">{len(comp_df)}개</span>&nbsp;&nbsp;'
+                f'<span style="color:#888">상위 10종목 비중: </span>'
+                f'<span style="color:#FF9500;font-weight:700">{top10["weight"].sum():.1f}%</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+            header_html = "".join(
+                f'<th style="text-align:{"left" if c in ("코드","종목명") else "right"};'
+                f'padding:8px 12px;color:#888;font-size:0.78rem;font-weight:600;'
+                f'border-bottom:1px solid #2a2d40">{c}</th>'
+                for c in ("코드", "종목명", "비중 (%)", "보유주수", "현재가")
+            )
+            rows_html = ""
+            for _, r in top10.iterrows():
+                rows_html += (
+                    f'<tr style="border-bottom:1px solid #1e2130">'
+                    f'<td style="padding:8px 12px;color:#fafafa;font-weight:600;font-size:0.88rem">{r["code"]}</td>'
+                    f'<td style="padding:8px 12px;color:#ddd;font-size:0.88rem">{r["name"]}</td>'
+                    f'<td style="padding:8px 12px;text-align:right;color:#FF9500;font-weight:600;font-size:0.88rem">'
+                    f'{r["weight"]:.2f}</td>'
+                    f'<td style="padding:8px 12px;text-align:right;color:#ddd;font-size:0.88rem">{r["shares"]:,.0f}</td>'
+                    f'<td style="padding:8px 12px;text-align:right;color:#ddd;font-size:0.88rem">'
+                    f'₩{r["price"]:,.0f}</td></tr>'
+                )
+            st.markdown(
+                f'<div style="background:#1a1d2e;border-radius:12px;border:1px solid #2a2d40;overflow:hidden">'
+                f'<table style="width:100%;border-collapse:collapse">'
+                f'<thead><tr>{header_html}</tr></thead>'
+                f'<tbody>{rows_html}</tbody></table></div>',
+                unsafe_allow_html=True,
+            )
+
+            # 상위 10 도넛 차트
+            st.markdown("<br>", unsafe_allow_html=True)
+            fig_comp = go.Figure(go.Pie(
+                labels=top10["name"], values=top10["weight"],
+                hole=0.5,
+                marker=dict(line=dict(color="#0e1117", width=2)),
+                textinfo="label+percent",
+                hovertemplate="<b>%{label}</b><br>비중: %{value:.2f}%<extra></extra>",
+            ))
+            fig_comp.update_layout(
+                height=380, margin=dict(l=10, r=10, t=10, b=10),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                showlegend=False, font=dict(color="#fafafa", size=11),
+            )
+            st.plotly_chart(fig_comp, use_container_width=True)
+
+    # ── NAV 추이 / 괴리율 ────────────────────────────────────────────────────
+    with tab_nav:
+        with st.spinner("NAV 데이터 조회 중…"):
+            nav_df = get_etf_nav_trend(sel_ticker)
+            cur_info = get_current_price(sel_ticker)
+
+        if nav_df.empty:
+            # Fallback: 단일 시점 NAV vs 현재가
+            if cur_info and cur_info.get("nav") and cur_info.get("price"):
+                price  = cur_info["price"]
+                nav    = cur_info["nav"]
+                premium = (price / nav - 1) * 100
+                color  = "#FF3B30" if premium > 0.5 else ("#007AFF" if premium < -0.5 else "#34C759")
+                st.markdown(
+                    f'<div class="card">'
+                    f'<div style="display:flex;justify-content:space-around;text-align:center">'
+                    f'<div><div class="metric-label">현재가</div>'
+                    f'<div class="metric-value">₩{price:,.0f}</div></div>'
+                    f'<div><div class="metric-label">NAV</div>'
+                    f'<div class="metric-value">₩{nav:,.0f}</div></div>'
+                    f'<div><div class="metric-label">괴리율</div>'
+                    f'<div class="metric-value" style="color:{color}">{premium:+.3f}%</div></div>'
+                    f'</div></div>',
+                    unsafe_allow_html=True,
+                )
+                st.caption("⚠️ NAV 일별 추이 API가 응답하지 않아 단일 시점만 표시합니다.")
+            else:
+                st.info("NAV 데이터를 가져오지 못했습니다.")
+        else:
+            latest = nav_df.iloc[-1]
+            avg_premium = nav_df["premium"].mean()
+            max_premium = nav_df["premium"].max()
+            min_premium = nav_df["premium"].min()
+
+            c1, c2, c3, c4 = st.columns(4)
+            cur_prem = latest["premium"]
+            cur_color = "#FF3B30" if cur_prem > 0.5 else ("#007AFF" if cur_prem < -0.5 else "#34C759")
+            for col, label, val, color in (
+                (c1, "현재 괴리율",  f"{cur_prem:+.3f}%", cur_color),
+                (c2, "평균 괴리율",  f"{avg_premium:+.3f}%", "#aaa"),
+                (c3, "최대 프리미엄", f"{max_premium:+.3f}%", "#FF3B30"),
+                (c4, "최대 디스카운트", f"{min_premium:+.3f}%", "#007AFF"),
+            ):
+                with col:
+                    st.markdown(
+                        f'<div class="metric-tile">'
+                        f'<div class="metric-label">{label}</div>'
+                        f'<div class="metric-value" style="color:{color};font-size:1.2rem">{val}</div>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            fig_nav = go.Figure()
+            fig_nav.add_trace(go.Scatter(
+                x=nav_df["date"], y=nav_df["close"],
+                name="시장가", line=dict(color="#FF9500", width=2),
+                hovertemplate="시장가: ₩%{y:,.0f}<extra></extra>",
+            ))
+            fig_nav.add_trace(go.Scatter(
+                x=nav_df["date"], y=nav_df["nav"],
+                name="NAV", line=dict(color="#007AFF", width=2, dash="dot"),
+                hovertemplate="NAV: ₩%{y:,.0f}<extra></extra>",
+            ))
+            fig_nav.update_layout(
+                height=300, margin=dict(l=10, r=10, t=10, b=10),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#fafafa"),
+                xaxis=dict(gridcolor="#1e2130"),
+                yaxis=dict(title="가격 (KRW)", gridcolor="#1e2130"),
+                legend=dict(orientation="h", y=1.1),
+            )
+            st.plotly_chart(fig_nav, use_container_width=True)
+
+            # 괴리율 추이
+            fig_prem = go.Figure(go.Bar(
+                x=nav_df["date"], y=nav_df["premium"],
+                marker_color=[PERF_RED if v > 0 else "#007AFF" for v in nav_df["premium"]],
+                hovertemplate="괴리율: %{y:+.3f}%<extra></extra>",
+            ))
+            fig_prem.update_layout(
+                height=220, margin=dict(l=10, r=10, t=10, b=10),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#fafafa"),
+                xaxis=dict(gridcolor="#1e2130"),
+                yaxis=dict(title="괴리율 (%)", gridcolor="#1e2130",
+                          zeroline=True, zerolinecolor="#444", ticksuffix="%"),
+            )
+            st.plotly_chart(fig_prem, use_container_width=True)
+
+    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
 # ── Section 6: 시장 전망 ─────────────────────────────────────────────────────
 
