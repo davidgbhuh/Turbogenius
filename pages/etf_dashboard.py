@@ -185,6 +185,23 @@ with st.sidebar:
     st.divider()
     st.subheader("포트폴리오 이력")
 
+    # ── 이력 불러오기 (JSON 업로드) ───────────────────────────────────────────
+    uploaded = st.file_uploader(
+        "📤 이력 불러오기 (.json)",
+        type="json",
+        help="이전에 내보낸 JSON 파일을 업로드하면 이력이 복원됩니다.",
+        label_visibility="collapsed",
+    )
+    if uploaded is not None:
+        try:
+            imported = json.load(uploaded)
+            if isinstance(imported, list) and imported:
+                save_history(imported)
+                st.success("이력을 불러왔습니다!")
+                st.rerun()
+        except Exception:
+            st.error("파일 형식이 올바르지 않습니다.")
+
     history = load_history()
     if history:
         labels = [h.get("quarter_label") or h.get("week_label", f"분석 {i+1}")
@@ -197,13 +214,24 @@ with st.sidebar:
 
     st.divider()
     generate_btn = st.button("새 분석 생성", type="primary", use_container_width=True)
+
+    # ── 이력 내보내기 (JSON 다운로드) ─────────────────────────────────────────
     if history:
+        st.download_button(
+            label="📥 이력 내보내기 (.json)",
+            data=json.dumps(history, ensure_ascii=False, indent=2),
+            file_name=f"etf_history_{datetime.now().strftime('%Y%m%d')}.json",
+            mime="application/json",
+            use_container_width=True,
+            help="분석 이력을 기기에 저장합니다. 앱 재시작 후 위 업로더로 복원하세요.",
+        )
         if st.button("이력 전체 삭제", use_container_width=True):
             save_history([])
             st.rerun()
 
     st.divider()
     st.caption("ℹ️ ETF 시세는 KRX yfinance 기준이며 최대 30분 지연될 수 있습니다.")
+    st.caption("💾 분석 후 **이력 내보내기**로 저장하세요. 앱 재시작 시 초기화됩니다.")
 
 
 # ── Analysis trigger ──────────────────────────────────────────────────────────
